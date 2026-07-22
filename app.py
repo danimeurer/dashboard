@@ -13,7 +13,6 @@ import gspread
 from google.oauth2.service_account import Credentials
 import streamlit as st
 import streamlit.components.v1 as components
-from st_keyup import st_keyup
 
 SPREADSHEET_ID = "1pqmFc5FQE6rbCeR321-FHFuTdghpkPGr2XF0irQfjGc"
 SHEETS = {
@@ -352,56 +351,6 @@ st.markdown(
         padding: 0;
     }
 
-    /* Integra visualmente os componentes de pesquisa dinâmica. */
-    div[data-testid="stCustomComponentV1"],
-    div[data-testid="stCustomComponentV1"] > div,
-    div[data-testid="stCustomComponentV1"] iframe {
-        background: transparent !important;
-        border: 0 !important;
-        box-shadow: none !important;
-    }
-
-    div[data-testid="stCustomComponentV1"] iframe {
-        width: 100% !important;
-    }
-
-    .dynamic-search-label {
-        color: #26394d;
-        font-size: 14px;
-        font-weight: 600;
-        line-height: 1.2;
-        margin: 0 0 6px 0;
-        padding: 0;
-        background: transparent;
-    }
-
-    /*
-    O st_keyup cria um label próprio dentro do iframe. Como esse iframe
-    recebe fundo branco, ocultamos a área superior e exibimos somente o campo.
-    O label visível passa a ser o label nativo acima.
-    */
-    iframe[title*="st_keyup"],
-    div[data-testid="stCustomComponentV1"] iframe[title*="keyup"] {
-        height: 43px !important;
-        min-height: 43px !important;
-        max-height: 43px !important;
-        margin-top: -29px !important;
-        margin-bottom: 0 !important;
-        background: transparent !important;
-        border: 0 !important;
-        overflow: hidden !important;
-    }
-
-    div[data-testid="stCustomComponentV1"]:has(iframe[title*="st_keyup"]),
-    div[data-testid="stCustomComponentV1"]:has(iframe[title*="keyup"]) {
-        height: 43px !important;
-        min-height: 43px !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        overflow: hidden !important;
-        background: transparent !important;
-    }
-
 
     .top-brand {
         display:flex;
@@ -706,156 +655,136 @@ def aligned_mask(df: pd.DataFrame, condition: pd.Series) -> pd.Series:
 
 
 
-def install_dynamic_search_style() -> None:
-    """Padroniza o st_keyup com o mesmo visual dos filtros do dashboard."""
+def install_live_native_search(debounce_ms: int = 350) -> None:
+    """Faz os campos nativos de pesquisa filtrarem após uma breve pausa."""
     components.html(
-        """
+        f"""
         <script>
-        (() => {
+        (() => {{
             const parentWindow = window.parent;
             const parentDocument = parentWindow.document;
+            const DEBOUNCE = {int(debounce_ms)};
+            const SEARCH_LABELS = [
+                "Pesquisar empresa ou objeto",
+                "Pesquisar no objeto"
+            ];
 
-            const searchCss = `
-                html, body {
-                    margin: 0 !important;
-                    padding: 0 !important;
-                    background: transparent !important;
-                    font-family: "Segoe UI", Arial, sans-serif !important;
-                    overflow: hidden !important;
-                }
+            function normalize(text) {{
+                return (text || "")
+                    .trim()
+                    .toLocaleLowerCase("pt-BR");
+            }}
 
-                label, p, span {
-                    font-family: "Segoe UI", Arial, sans-serif !important;
-                }
+            function isSearchInput(input) {{
+                const widget = input.closest(
+                    'div[data-testid="stTextInput"]'
+                );
+                if (!widget) return false;
 
-                label {
-                    display: block !important;
-                    margin: 0 0 6px 0 !important;
-                    padding: 0 !important;
-                    background: transparent !important;
-                    color: #26394d !important;
-                    font-size: 14px !important;
-                    font-weight: 600 !important;
-                    line-height: 1.2 !important;
-                }
+                const label = widget.querySelector("label");
+                const labelText = normalize(label?.innerText);
+                return SEARCH_LABELS.some(
+                    item => labelText === normalize(item)
+                );
+            }}
 
-                input[type="text"],
-                input:not([type]) {
-                    width: 100% !important;
-                    height: 40px !important;
-                    min-height: 40px !important;
-                    box-sizing: border-box !important;
-                    padding: 8px 12px !important;
-                    border: 1px solid #cbd7e2 !important;
-                    border-radius: 8px !important;
-                    outline: none !important;
-                    background: #ffffff !important;
-                    color: #17324d !important;
-                    font-family: "Segoe UI", Arial, sans-serif !important;
-                    font-size: 14px !important;
-                    line-height: 1.25 !important;
-                    box-shadow: 0 1px 2px rgba(20,55,90,.03) !important;
-                    transition: border-color .15s ease, box-shadow .15s ease !important;
-                }
+            function submitInput(input) {{
+                if (!input || !parentDocument.contains(input)) return;
 
-                input[type="text"]:hover,
-                input:not([type]):hover {
-                    border-color: #9eb7ca !important;
-                }
+                const value = input.value || "";
+                const lastSubmitted = input.dataset.lastLiveSubmitted ?? "";
 
-                input[type="text"]:focus,
-                input:not([type]):focus {
-                    border-color: #1f6fb2 !important;
-                    box-shadow: 0 0 0 1px #1f6fb2 !important;
-                }
+                if (value === lastSubmitted) return;
+                input.dataset.lastLiveSubmitted = value;
 
-                input::placeholder {
-                    color: #7e8d9c !important;
-                    opacity: 1 !important;
-                }
-
-                div, section, main, form {
-                    background: transparent !important;
-                    box-shadow: none !important;
-                }
-            `;
-
-            function applyToIframe(iframe) {
-                try {
-                    const doc = iframe.contentDocument ||
-                                iframe.contentWindow?.document;
-                    if (!doc || !doc.head || !doc.body) return;
-
-                    if (!doc.getElementById("dashboard-search-style")) {
-                        const style = doc.createElement("style");
-                        style.id = "dashboard-search-style";
-                        style.textContent = searchCss;
-                        doc.head.appendChild(style);
-                    }
-
-                    doc.documentElement.style.background = "transparent";
-                    doc.body.style.background = "transparent";
-                    doc.body.style.margin = "0";
-                    doc.body.style.padding = "0";
-
-                    const input = doc.querySelector(
-                        'input[type="text"], input:not([type])'
-                    );
-                    if (input) {
-                        iframe.style.height = "43px";
-                        iframe.style.minHeight = "43px";
-                        iframe.style.background = "transparent";
-                        iframe.style.border = "0";
-                    }
-                } catch (error) {
-                    /* O campo continua funcional se o navegador bloquear
-                       o acesso interno ao iframe. */
-                }
-            }
-
-            function styleSearchComponents() {
-                const frames = parentDocument.querySelectorAll(
-                    'div[data-testid="stCustomComponentV1"] iframe'
+                sessionStorage.setItem(
+                    "dashboard-live-search-focus",
+                    input.getAttribute("aria-label") || ""
                 );
 
-                frames.forEach((iframe) => {
-                    iframe.style.background = "transparent";
-                    iframe.style.border = "0";
-                    applyToIframe(iframe);
+                input.dispatchEvent(
+                    new KeyboardEvent("keydown", {{
+                        key: "Enter",
+                        code: "Enter",
+                        keyCode: 13,
+                        which: 13,
+                        bubbles: true,
+                        cancelable: true
+                    }})
+                );
+                input.dispatchEvent(
+                    new KeyboardEvent("keyup", {{
+                        key: "Enter",
+                        code: "Enter",
+                        keyCode: 13,
+                        which: 13,
+                        bubbles: true,
+                        cancelable: true
+                    }})
+                );
 
-                    if (!iframe.dataset.dashboardSearchLoadBound) {
-                        iframe.dataset.dashboardSearchLoadBound = "true";
-                        iframe.addEventListener(
-                            "load",
-                            () => applyToIframe(iframe)
+                input.blur();
+            }}
+
+            function bindInputs() {{
+                const inputs = parentDocument.querySelectorAll(
+                    'div[data-testid="stTextInput"] input'
+                );
+
+                inputs.forEach(input => {{
+                    if (!isSearchInput(input)) return;
+                    if (input.dataset.liveSearchBound === "true") return;
+
+                    input.dataset.liveSearchBound = "true";
+                    input.dataset.lastLiveSubmitted = input.value || "";
+
+                    let timer = null;
+
+                    input.addEventListener("input", () => {{
+                        parentWindow.clearTimeout(timer);
+                        timer = parentWindow.setTimeout(
+                            () => submitInput(input),
+                            DEBOUNCE
                         );
-                    }
-                });
-            }
+                    }});
+                }});
 
-            if (!parentWindow.__dashboardSearchStyleInstalled) {
-                parentWindow.__dashboardSearchStyleInstalled = true;
-
-                const observer = new MutationObserver(styleSearchComponents);
-                observer.observe(parentDocument.body, {
-                    childList: true,
-                    subtree: true,
-                    attributes: true,
-                    attributeFilter: ["src", "style", "class"],
-                });
-
-                parentWindow.addEventListener(
-                    "resize",
-                    styleSearchComponents
+                const wantedLabel = sessionStorage.getItem(
+                    "dashboard-live-search-focus"
                 );
-                parentWindow.__dashboardSearchStyleObserver = observer;
-            }
+                if (wantedLabel) {{
+                    const target = [...inputs].find(
+                        input =>
+                            isSearchInput(input) &&
+                            (input.getAttribute("aria-label") || "") === wantedLabel
+                    );
+                    if (target) {{
+                        sessionStorage.removeItem(
+                            "dashboard-live-search-focus"
+                        );
+                        target.focus();
+                        const end = target.value.length;
+                        target.setSelectionRange(end, end);
+                    }}
+                }}
+            }}
 
-            styleSearchComponents();
-            parentWindow.setTimeout(styleSearchComponents, 150);
-            parentWindow.setTimeout(styleSearchComponents, 500);
-            parentWindow.setTimeout(styleSearchComponents, 1200);
-        })();
+            if (!parentWindow.__dashboardLiveSearchInstalled) {{
+                parentWindow.__dashboardLiveSearchInstalled = true;
+
+                const observer = new MutationObserver(bindInputs);
+                observer.observe(parentDocument.body, {{
+                    childList: true,
+                    subtree: true
+                }});
+
+                parentWindow.__dashboardLiveSearchObserver = observer;
+            }}
+
+            bindInputs();
+            parentWindow.setTimeout(bindInputs, 150);
+            parentWindow.setTimeout(bindInputs, 500);
+        }})();
         </script>
         """,
         height=0,
@@ -1177,8 +1106,8 @@ with st.sidebar:
         st.rerun()
     st.markdown('<div class="sidebar-footer">Dados sincronizados com o Google Planilhas</div>', unsafe_allow_html=True)
 
-# Padroniza visualmente os campos que pesquisam enquanto o usuário digita.
-install_dynamic_search_style()
+# Mantém o campo nativo do Streamlit e atualiza a pesquisa após breve pausa.
+install_live_native_search(debounce_ms=350)
 
 try:
     with st.spinner("Conectando à planilha..."):
@@ -1452,16 +1381,7 @@ elif page == "Contratos":
             responsive_max_height=720,
         )
     with t4:
-        st.markdown(
-            '<div class="dynamic-search-label">Pesquisar empresa ou objeto</div>',
-            unsafe_allow_html=True,
-        )
-        search = st_keyup(
-            "",
-            key="busca_contratos_empresa_objeto",
-            debounce=250,
-            placeholder="Digite parte do nome da empresa ou do objeto",
-        )
+        search = st.text_input("Pesquisar empresa ou objeto")
         view = contratos.copy()
         if search:
             mask = contains_filter(view, c_empresa, search) | contains_filter(view, c_objeto, search)
@@ -1513,16 +1433,7 @@ elif page == "Processos concluídos":
     with f3:
         solicitante = st.selectbox("Solicitante", ["Todos"] + safe_values(concluidos, p_solic))
     with f4:
-        st.markdown(
-            '<div class="dynamic-search-label">Pesquisar no objeto</div>',
-            unsafe_allow_html=True,
-        )
-        objeto = st_keyup(
-            "",
-            key="busca_processos_concluidos_objeto",
-            debounce=250,
-            placeholder="Digite parte do objeto",
-        )
+        objeto = st.text_input("Pesquisar no objeto")
     mask = pd.Series(True, index=concluidos.index)
     if ano != "Todos" and p_ano: mask &= concluidos[p_ano].astype(str) == ano
     if tipo != "Todos" and p_tipo: mask &= concluidos[p_tipo].astype(str) == tipo
@@ -1576,16 +1487,7 @@ elif page == "Em andamento":
     with f3:
         sol = st.selectbox("Solicitante", ["Todos"] + safe_values(andamento, a_sol))
     with f4:
-        st.markdown(
-            '<div class="dynamic-search-label">Pesquisar no objeto</div>',
-            unsafe_allow_html=True,
-        )
-        obj = st_keyup(
-            "",
-            key="busca_em_andamento_objeto",
-            debounce=250,
-            placeholder="Digite parte do objeto",
-        )
+        obj = st.text_input("Pesquisar no objeto")
 
     mask = pd.Series(True, index=andamento.index)
     if resp != "Todos" and a_resp:

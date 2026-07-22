@@ -1,10 +1,11 @@
-# Dashboard de Contratações — pesquisa sem faixa branca
+# Dashboard de Contratações — pesquisa nativa dinâmica
 
-Correção aplicada aos campos de pesquisa dinâmica:
-- label interno branco do st_keyup ocultado;
-- label substituído por texto nativo do dashboard;
-- somente o campo de digitação permanece visível;
-- pesquisa instantânea preservada nos três menus;
-- acesso à planilha privada e demais recursos mantidos.
+Correção definitiva dos campos de pesquisa:
+- removido o componente st_keyup que criava faixas brancas;
+- restaurados os campos nativos do Streamlit;
+- visual idêntico aos demais filtros;
+- filtragem automática após 350 ms sem digitação;
+- aplicado em Em andamento, Contratos e Processos concluídos;
+- acesso à planilha privada e cabeçalho corrigido preservados.
 
-Substitua todos os arquivos no repositório, faça Commit e Push origin.
+Substitua todos os arquivos no repositório, incluindo requirements.txt, faça Commit e Push origin.

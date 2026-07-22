@@ -4,4 +4,3 @@ plotly
 openpyxl
 gspread
 google-auth
-streamlit-keyup==0.3.0
