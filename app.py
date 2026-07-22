@@ -352,6 +352,20 @@ st.markdown(
         padding: 0;
     }
 
+    /* Integra visualmente os componentes de pesquisa dinâmica. */
+    div[data-testid="stCustomComponentV1"],
+    div[data-testid="stCustomComponentV1"] > div,
+    div[data-testid="stCustomComponentV1"] iframe {
+        background: transparent !important;
+        border: 0 !important;
+        box-shadow: none !important;
+    }
+
+    div[data-testid="stCustomComponentV1"] iframe {
+        width: 100% !important;
+        min-height: 72px !important;
+    }
+
 
     .top-brand {
         display:flex;
@@ -654,6 +668,163 @@ def aligned_mask(df: pd.DataFrame, condition: pd.Series) -> pd.Series:
     return condition.reindex(df.index, fill_value=False).fillna(False).astype(bool)
 
 
+
+
+def install_dynamic_search_style() -> None:
+    """Padroniza o st_keyup com o mesmo visual dos filtros do dashboard."""
+    components.html(
+        """
+        <script>
+        (() => {
+            const parentWindow = window.parent;
+            const parentDocument = parentWindow.document;
+
+            const searchCss = `
+                html, body {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    background: transparent !important;
+                    font-family: "Segoe UI", Arial, sans-serif !important;
+                    overflow: hidden !important;
+                }
+
+                label, p, span {
+                    font-family: "Segoe UI", Arial, sans-serif !important;
+                }
+
+                label {
+                    display: block !important;
+                    margin: 0 0 6px 0 !important;
+                    padding: 0 !important;
+                    background: transparent !important;
+                    color: #26394d !important;
+                    font-size: 14px !important;
+                    font-weight: 600 !important;
+                    line-height: 1.2 !important;
+                }
+
+                input[type="text"],
+                input:not([type]) {
+                    width: 100% !important;
+                    height: 40px !important;
+                    min-height: 40px !important;
+                    box-sizing: border-box !important;
+                    padding: 8px 12px !important;
+                    border: 1px solid #cbd7e2 !important;
+                    border-radius: 8px !important;
+                    outline: none !important;
+                    background: #ffffff !important;
+                    color: #17324d !important;
+                    font-family: "Segoe UI", Arial, sans-serif !important;
+                    font-size: 14px !important;
+                    line-height: 1.25 !important;
+                    box-shadow: 0 1px 2px rgba(20,55,90,.03) !important;
+                    transition: border-color .15s ease, box-shadow .15s ease !important;
+                }
+
+                input[type="text"]:hover,
+                input:not([type]):hover {
+                    border-color: #9eb7ca !important;
+                }
+
+                input[type="text"]:focus,
+                input:not([type]):focus {
+                    border-color: #1f6fb2 !important;
+                    box-shadow: 0 0 0 1px #1f6fb2 !important;
+                }
+
+                input::placeholder {
+                    color: #7e8d9c !important;
+                    opacity: 1 !important;
+                }
+
+                div, section, main, form {
+                    background: transparent !important;
+                    box-shadow: none !important;
+                }
+            `;
+
+            function applyToIframe(iframe) {
+                try {
+                    const doc = iframe.contentDocument ||
+                                iframe.contentWindow?.document;
+                    if (!doc || !doc.head || !doc.body) return;
+
+                    if (!doc.getElementById("dashboard-search-style")) {
+                        const style = doc.createElement("style");
+                        style.id = "dashboard-search-style";
+                        style.textContent = searchCss;
+                        doc.head.appendChild(style);
+                    }
+
+                    doc.documentElement.style.background = "transparent";
+                    doc.body.style.background = "transparent";
+                    doc.body.style.margin = "0";
+                    doc.body.style.padding = "0";
+
+                    const input = doc.querySelector(
+                        'input[type="text"], input:not([type])'
+                    );
+                    if (input) {
+                        iframe.style.height = "72px";
+                        iframe.style.minHeight = "72px";
+                        iframe.style.background = "transparent";
+                        iframe.style.border = "0";
+                    }
+                } catch (error) {
+                    /* O campo continua funcional se o navegador bloquear
+                       o acesso interno ao iframe. */
+                }
+            }
+
+            function styleSearchComponents() {
+                const frames = parentDocument.querySelectorAll(
+                    'div[data-testid="stCustomComponentV1"] iframe'
+                );
+
+                frames.forEach((iframe) => {
+                    iframe.style.background = "transparent";
+                    iframe.style.border = "0";
+                    applyToIframe(iframe);
+
+                    if (!iframe.dataset.dashboardSearchLoadBound) {
+                        iframe.dataset.dashboardSearchLoadBound = "true";
+                        iframe.addEventListener(
+                            "load",
+                            () => applyToIframe(iframe)
+                        );
+                    }
+                });
+            }
+
+            if (!parentWindow.__dashboardSearchStyleInstalled) {
+                parentWindow.__dashboardSearchStyleInstalled = true;
+
+                const observer = new MutationObserver(styleSearchComponents);
+                observer.observe(parentDocument.body, {
+                    childList: true,
+                    subtree: true,
+                    attributes: true,
+                    attributeFilter: ["src", "style", "class"],
+                });
+
+                parentWindow.addEventListener(
+                    "resize",
+                    styleSearchComponents
+                );
+                parentWindow.__dashboardSearchStyleObserver = observer;
+            }
+
+            styleSearchComponents();
+            parentWindow.setTimeout(styleSearchComponents, 150);
+            parentWindow.setTimeout(styleSearchComponents, 500);
+            parentWindow.setTimeout(styleSearchComponents, 1200);
+        })();
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
 
 def install_responsive_table_resizer(
     bottom_margin: int = 18,
@@ -969,6 +1140,9 @@ with st.sidebar:
         st.cache_data.clear()
         st.rerun()
     st.markdown('<div class="sidebar-footer">Dados sincronizados com o Google Planilhas</div>', unsafe_allow_html=True)
+
+# Padroniza visualmente os campos que pesquisam enquanto o usuário digita.
+install_dynamic_search_style()
 
 try:
     with st.spinner("Conectando à planilha..."):

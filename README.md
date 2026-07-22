@@ -1,12 +1,13 @@
-# Dashboard de Contratações — Pesquisa dinâmica
+# Dashboard de Contratações — Pesquisa dinâmica padronizada
 
-Nesta versão, os registros são filtrados automaticamente enquanto o usuário digita.
+Os campos de pesquisa continuam filtrando enquanto o usuário digita e agora seguem o mesmo padrão visual dos demais filtros.
 
-Pesquisas alteradas:
-- Em andamento: pesquisa pelo objeto;
-- Contratos > Todos: pesquisa por empresa ou objeto;
-- Processos concluídos: pesquisa pelo objeto.
+Alterações:
+- fundo externo transparente;
+- label sem caixa branca diferente do sistema;
+- mesma altura, borda, arredondamento e fonte dos filtros;
+- foco com borda azul institucional;
+- aplicação nos menus Em andamento, Contratos e Processos concluídos;
+- acesso à planilha privada preservado.
 
-Foi aplicado debounce de 250 ms para manter a navegação rápida e evitar processamentos excessivos.
-
-Substitua os arquivos no repositório, faça Commit e Push origin.
+Substitua todos os arquivos no repositório, inclusive requirements.txt, faça Commit e Push origin.
