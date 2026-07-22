@@ -73,9 +73,27 @@ st.markdown(
         max-width: 100%;
         overflow-x: hidden !important;
     }
+    /* Remove a barra superior fixa do Streamlit Cloud para ela não
+       sobrepor o cabeçalho institucional do dashboard. */
+    header[data-testid="stHeader"],
+    [data-testid="stHeader"] {
+        height: 0 !important;
+        min-height: 0 !important;
+        visibility: hidden !important;
+        display: none !important;
+    }
+    [data-testid="stToolbar"],
+    [data-testid="stDecoration"],
+    [data-testid="stStatusWidget"],
+    #MainMenu {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
     [data-testid="stSidebar"] {
         background: linear-gradient(180deg, #0e2d48 0%, #174b73 100%);
         border-right: 1px solid rgba(255,255,255,.08);
+        padding-top: .35rem;
     }
     [data-testid="stSidebar"] * {color: #fff;}
     [data-testid="stSidebar"] [role="radiogroup"] label {
@@ -88,7 +106,7 @@ st.markdown(
     }
 
     .block-container {
-        padding-top: 1.05rem;
+        padding-top: 1.35rem !important;
         padding-bottom: .45rem;
         padding-left: 1.15rem;
         padding-right: 1.15rem;
@@ -335,14 +353,27 @@ st.markdown(
 
 
     .top-brand {
-        display:flex; align-items:center; justify-content:space-between; gap:16px;
-        margin-bottom:8px; padding:0 2px;
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:16px;
+        min-height:52px;
+        margin:0 0 10px 0;
+        padding:2px 4px 3px;
+        overflow:visible;
+        box-sizing:border-box;
     }
-    .brand-left {display:flex; align-items:center; gap:10px; min-width:0;}
+    .brand-left {
+        display:flex;
+        align-items:center;
+        gap:13px;
+        min-width:0;
+        overflow:visible;
+    }
     .brand-logo {
-        width:150px;
+        width:142px;
         height:auto;
-        max-height:44px;
+        max-height:46px;
         object-fit:contain;
         object-position:left center;
         display:block;

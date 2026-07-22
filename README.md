@@ -1,14 +1,11 @@
-# Dashboard de Contratações — Planilha privada
+# Dashboard de Contratações — Cabeçalho corrigido
 
-Esta versão lê a planilha privada usando uma conta de serviço do Google e os Secrets do Streamlit Community Cloud.
+Versão com acesso à planilha privada e correção do cabeçalho na publicação do Streamlit Community Cloud.
 
-## Secrets necessários
+Alterações:
+- barra superior padrão do Streamlit ocultada;
+- cabeçalho institucional não fica mais sobreposto;
+- margem superior segura adicionada;
+- logo mantido proporcional e totalmente visível.
 
-Use o grupo `[gcp_service_account]` no formato TOML. Não publique o arquivo JSON no GitHub.
-
-## Publicação
-
-1. Substitua os arquivos do repositório por estes.
-2. Faça Commit e Push origin no GitHub Desktop.
-3. No Streamlit Cloud, salve os Secrets.
-4. Reinicie o aplicativo.
+Substitua os arquivos no repositório, faça Commit e Push origin.
