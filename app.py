@@ -363,7 +363,43 @@ st.markdown(
 
     div[data-testid="stCustomComponentV1"] iframe {
         width: 100% !important;
-        min-height: 72px !important;
+    }
+
+    .dynamic-search-label {
+        color: #26394d;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.2;
+        margin: 0 0 6px 0;
+        padding: 0;
+        background: transparent;
+    }
+
+    /*
+    O st_keyup cria um label próprio dentro do iframe. Como esse iframe
+    recebe fundo branco, ocultamos a área superior e exibimos somente o campo.
+    O label visível passa a ser o label nativo acima.
+    */
+    iframe[title*="st_keyup"],
+    div[data-testid="stCustomComponentV1"] iframe[title*="keyup"] {
+        height: 43px !important;
+        min-height: 43px !important;
+        max-height: 43px !important;
+        margin-top: -29px !important;
+        margin-bottom: 0 !important;
+        background: transparent !important;
+        border: 0 !important;
+        overflow: hidden !important;
+    }
+
+    div[data-testid="stCustomComponentV1"]:has(iframe[title*="st_keyup"]),
+    div[data-testid="stCustomComponentV1"]:has(iframe[title*="keyup"]) {
+        height: 43px !important;
+        min-height: 43px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        background: transparent !important;
     }
 
 
@@ -766,8 +802,8 @@ def install_dynamic_search_style() -> None:
                         'input[type="text"], input:not([type])'
                     );
                     if (input) {
-                        iframe.style.height = "72px";
-                        iframe.style.minHeight = "72px";
+                        iframe.style.height = "43px";
+                        iframe.style.minHeight = "43px";
                         iframe.style.background = "transparent";
                         iframe.style.border = "0";
                     }
@@ -1416,8 +1452,12 @@ elif page == "Contratos":
             responsive_max_height=720,
         )
     with t4:
+        st.markdown(
+            '<div class="dynamic-search-label">Pesquisar empresa ou objeto</div>',
+            unsafe_allow_html=True,
+        )
         search = st_keyup(
-            "Pesquisar empresa ou objeto",
+            "",
             key="busca_contratos_empresa_objeto",
             debounce=250,
             placeholder="Digite parte do nome da empresa ou do objeto",
@@ -1473,8 +1513,12 @@ elif page == "Processos concluídos":
     with f3:
         solicitante = st.selectbox("Solicitante", ["Todos"] + safe_values(concluidos, p_solic))
     with f4:
+        st.markdown(
+            '<div class="dynamic-search-label">Pesquisar no objeto</div>',
+            unsafe_allow_html=True,
+        )
         objeto = st_keyup(
-            "Pesquisar no objeto",
+            "",
             key="busca_processos_concluidos_objeto",
             debounce=250,
             placeholder="Digite parte do objeto",
@@ -1532,8 +1576,12 @@ elif page == "Em andamento":
     with f3:
         sol = st.selectbox("Solicitante", ["Todos"] + safe_values(andamento, a_sol))
     with f4:
+        st.markdown(
+            '<div class="dynamic-search-label">Pesquisar no objeto</div>',
+            unsafe_allow_html=True,
+        )
         obj = st_keyup(
-            "Pesquisar no objeto",
+            "",
             key="busca_em_andamento_objeto",
             debounce=250,
             placeholder="Digite parte do objeto",

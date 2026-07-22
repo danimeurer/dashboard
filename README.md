@@ -1,13 +1,10 @@
-# Dashboard de Contratações — Pesquisa dinâmica padronizada
+# Dashboard de Contratações — pesquisa sem faixa branca
 
-Os campos de pesquisa continuam filtrando enquanto o usuário digita e agora seguem o mesmo padrão visual dos demais filtros.
+Correção aplicada aos campos de pesquisa dinâmica:
+- label interno branco do st_keyup ocultado;
+- label substituído por texto nativo do dashboard;
+- somente o campo de digitação permanece visível;
+- pesquisa instantânea preservada nos três menus;
+- acesso à planilha privada e demais recursos mantidos.
 
-Alterações:
-- fundo externo transparente;
-- label sem caixa branca diferente do sistema;
-- mesma altura, borda, arredondamento e fonte dos filtros;
-- foco com borda azul institucional;
-- aplicação nos menus Em andamento, Contratos e Processos concluídos;
-- acesso à planilha privada preservado.
-
-Substitua todos os arquivos no repositório, inclusive requirements.txt, faça Commit e Push origin.
+Substitua todos os arquivos no repositório, faça Commit e Push origin.
