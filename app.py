@@ -13,6 +13,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 import streamlit as st
 import streamlit.components.v1 as components
+from st_keyup import st_keyup
 
 SPREADSHEET_ID = "1pqmFc5FQE6rbCeR321-FHFuTdghpkPGr2XF0irQfjGc"
 SHEETS = {
@@ -85,31 +86,7 @@ st.markdown(
     [data-testid="stToolbar"],
     [data-testid="stDecoration"],
     [data-testid="stStatusWidget"],
-    [data-testid="stAppDeployButton"],
-    [data-testid="stBaseButton-header"],
-    [data-testid="stBaseButton-headerNoPadding"],
-    [data-testid="stMainMenu"],
     #MainMenu {
-        display: none !important;
-        visibility: hidden !important;
-    }
-
-    /* Botão flutuante "Manage app" do Streamlit Community Cloud */
-    [data-testid="manage-app-button"],
-    [data-testid="stManageAppButton"],
-    a[href*="manage-app"],
-    button[aria-label*="Manage app"],
-    button[title*="Manage app"],
-    div[role="button"][aria-label*="Manage app"] {
-        display: none !important;
-        visibility: hidden !important;
-        opacity: 0 !important;
-        pointer-events: none !important;
-    }
-
-    /* Oculta também a barra fixa inferior usada por esse controle */
-    div:has(> button[aria-label*="Manage app"]),
-    div:has(> a[href*="manage-app"]) {
         display: none !important;
         visibility: hidden !important;
     }
@@ -1265,7 +1242,12 @@ elif page == "Contratos":
             responsive_max_height=720,
         )
     with t4:
-        search = st.text_input("Pesquisar empresa ou objeto")
+        search = st_keyup(
+            "Pesquisar empresa ou objeto",
+            key="busca_contratos_empresa_objeto",
+            debounce=250,
+            placeholder="Digite parte do nome da empresa ou do objeto",
+        )
         view = contratos.copy()
         if search:
             mask = contains_filter(view, c_empresa, search) | contains_filter(view, c_objeto, search)
@@ -1317,7 +1299,12 @@ elif page == "Processos concluídos":
     with f3:
         solicitante = st.selectbox("Solicitante", ["Todos"] + safe_values(concluidos, p_solic))
     with f4:
-        objeto = st.text_input("Pesquisar no objeto")
+        objeto = st_keyup(
+            "Pesquisar no objeto",
+            key="busca_processos_concluidos_objeto",
+            debounce=250,
+            placeholder="Digite parte do objeto",
+        )
     mask = pd.Series(True, index=concluidos.index)
     if ano != "Todos" and p_ano: mask &= concluidos[p_ano].astype(str) == ano
     if tipo != "Todos" and p_tipo: mask &= concluidos[p_tipo].astype(str) == tipo
@@ -1371,7 +1358,12 @@ elif page == "Em andamento":
     with f3:
         sol = st.selectbox("Solicitante", ["Todos"] + safe_values(andamento, a_sol))
     with f4:
-        obj = st.text_input("Pesquisar no objeto")
+        obj = st_keyup(
+            "Pesquisar no objeto",
+            key="busca_em_andamento_objeto",
+            debounce=250,
+            placeholder="Digite parte do objeto",
+        )
 
     mask = pd.Series(True, index=andamento.index)
     if resp != "Todos" and a_resp:
