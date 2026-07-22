@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from io import BytesIO
 from datetime import datetime
 from pathlib import Path
 import base64
@@ -10,12 +9,12 @@ from typing import Iterable
 
 import pandas as pd
 import plotly.express as px
-import requests
+import gspread
+from google.oauth2.service_account import Credentials
 import streamlit as st
 import streamlit.components.v1 as components
 
 SPREADSHEET_ID = "1pqmFc5FQE6rbCeR321-FHFuTdghpkPGr2XF0irQfjGc"
-XLSX_URL = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/export?format=xlsx"
 SHEETS = {
     "contratos": "CONTRATOS VIGENTES",
     "concluidos": "PROCESSOS CONCLUÍDOS",
@@ -455,22 +454,61 @@ def prepare_sheet(raw: pd.DataFrame, sheet_key: str) -> pd.DataFrame:
     return df
 
 
+def get_google_credentials() -> Credentials:
+    """Cria credenciais usando o grupo [gcp_service_account] do Streamlit Secrets."""
+    if "gcp_service_account" not in st.secrets:
+        raise KeyError(
+            "As credenciais não foram encontradas. Configure [gcp_service_account] "
+            "em Settings → Secrets no Streamlit Cloud."
+        )
+
+    service_account_info = dict(st.secrets["gcp_service_account"])
+    required = {"type", "project_id", "private_key", "client_email", "token_uri"}
+    missing = sorted(required.difference(service_account_info))
+    if missing:
+        raise KeyError(
+            "Campos ausentes nos Secrets: " + ", ".join(missing)
+        )
+
+    # Corrige chaves coladas com \n literal ou com quebras já interpretadas pelo TOML.
+    private_key = str(service_account_info["private_key"])
+    service_account_info["private_key"] = private_key.replace("\\n", "\n")
+
+    scopes = [
+        "https://www.googleapis.com/auth/spreadsheets.readonly",
+        "https://www.googleapis.com/auth/drive.readonly",
+    ]
+    return Credentials.from_service_account_info(
+        service_account_info,
+        scopes=scopes,
+    )
+
+
 @st.cache_data(ttl=120, show_spinner=False)
 def load_workbook() -> dict[str, pd.DataFrame]:
-    response = requests.get(XLSX_URL, timeout=30)
-    response.raise_for_status()
-    if "text/html" in response.headers.get("content-type", ""):
-        raise PermissionError("A planilha não está disponível publicamente para leitura.")
-    raw_book = pd.read_excel(
-        BytesIO(response.content), sheet_name=None, header=None, engine="openpyxl"
-    )
-    normalized = {norm(name): df for name, df in raw_book.items()}
+    """Lê as abas da planilha privada pela conta de serviço do Google."""
+    credentials = get_google_credentials()
+    client = gspread.authorize(credentials)
+
+    try:
+        spreadsheet = client.open_by_key(SPREADSHEET_ID)
+    except gspread.exceptions.SpreadsheetNotFound as exc:
+        raise PermissionError(
+            "A conta de serviço não tem acesso à planilha. Compartilhe a planilha "
+            "com o client_email informado nos Secrets."
+        ) from exc
+
     result: dict[str, pd.DataFrame] = {}
     for key, sheet_name in SHEETS.items():
-        n = norm(sheet_name)
-        if n not in normalized:
-            raise KeyError(f'A aba "{sheet_name}" não foi encontrada.')
-        result[key] = prepare_sheet(normalized[n], key)
+        try:
+            worksheet = spreadsheet.worksheet(sheet_name)
+        except gspread.exceptions.WorksheetNotFound as exc:
+            raise KeyError(f'A aba "{sheet_name}" não foi encontrada.') from exc
+
+        values = worksheet.get_all_values()
+        raw = pd.DataFrame(values)
+        result[key] = prepare_sheet(raw, key)
+
     return result
 
 
@@ -906,7 +944,7 @@ try:
 except Exception as exc:
     page_header("Não foi possível abrir a planilha", "Confira a permissão pública e os nomes das abas.")
     st.error(str(exc))
-    st.info("No Google Planilhas, use Compartilhar → Acesso geral → Qualquer pessoa com o link → Leitor.")
+    st.info("Confira os Secrets do Streamlit e se a planilha foi compartilhada com o e-mail da conta de serviço.")
     st.stop()
 
 contratos = data["contratos"]

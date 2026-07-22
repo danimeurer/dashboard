@@ -1,13 +1,14 @@
-# Dashboard de Contratações — Tabelas responsivas
+# Dashboard de Contratações — Planilha privada
 
-Nesta versão, a altura das tabelas é calculada automaticamente conforme o tamanho real da janela do navegador.
+Esta versão lê a planilha privada usando uma conta de serviço do Google e os Secrets do Streamlit Community Cloud.
 
-O ajuste é refeito quando:
-- a janela é redimensionada;
-- o zoom do navegador muda;
-- o usuário troca de aba ou menu;
-- o sistema é aberto em monitor ou notebook com outra resolução.
+## Secrets necessários
 
-A rolagem permanece dentro da tabela quando houver muitos registros, evitando scroll externo na página.
+Use o grupo `[gcp_service_account]` no formato TOML. Não publique o arquivo JSON no GitHub.
 
-Execute `INICIAR.bat`.
+## Publicação
+
+1. Substitua os arquivos do repositório por estes.
+2. Faça Commit e Push origin no GitHub Desktop.
+3. No Streamlit Cloud, salve os Secrets.
+4. Reinicie o aplicativo.
