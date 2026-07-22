@@ -85,7 +85,31 @@ st.markdown(
     [data-testid="stToolbar"],
     [data-testid="stDecoration"],
     [data-testid="stStatusWidget"],
+    [data-testid="stAppDeployButton"],
+    [data-testid="stBaseButton-header"],
+    [data-testid="stBaseButton-headerNoPadding"],
+    [data-testid="stMainMenu"],
     #MainMenu {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    /* Botão flutuante "Manage app" do Streamlit Community Cloud */
+    [data-testid="manage-app-button"],
+    [data-testid="stManageAppButton"],
+    a[href*="manage-app"],
+    button[aria-label*="Manage app"],
+    button[title*="Manage app"],
+    div[role="button"][aria-label*="Manage app"] {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+    }
+
+    /* Oculta também a barra fixa inferior usada por esse controle */
+    div:has(> button[aria-label*="Manage app"]),
+    div:has(> a[href*="manage-app"]) {
         display: none !important;
         visibility: hidden !important;
     }

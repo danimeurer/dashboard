@@ -1,11 +1,9 @@
-# Dashboard de Contratações — Cabeçalho corrigido
+# Dashboard de Contratações — sem controles do Streamlit
 
-Versão com acesso à planilha privada e correção do cabeçalho na publicação do Streamlit Community Cloud.
-
-Alterações:
-- barra superior padrão do Streamlit ocultada;
-- cabeçalho institucional não fica mais sobreposto;
-- margem superior segura adicionada;
-- logo mantido proporcional e totalmente visível.
+Alterações desta versão:
+- cabeçalho institucional preservado;
+- botão flutuante Manage app ocultado;
+- controles de deploy e menu residual do Streamlit ocultados;
+- acesso à planilha privada mantido.
 
 Substitua os arquivos no repositório, faça Commit e Push origin.
