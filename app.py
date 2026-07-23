@@ -980,77 +980,48 @@ def aligned_mask(df: pd.DataFrame, condition: pd.Series) -> pd.Series:
 
 
 def install_persistent_mobile_menu() -> None:
-    """Cria um botão universal para abrir e recolher a barra lateral."""
+    """Cria um botão leve para abrir/recolher o menu em qualquer navegador."""
     components.html(
         """
         <script>
         (() => {
             const win = window.parent;
             const doc = win.document;
-            const ID = "dashboard-mobile-menu-toggle";
-
-            function sidebar() {
-                return doc.querySelector('[data-testid="stSidebar"]');
-            }
+            const BUTTON_ID = "dashboard-mobile-menu-toggle";
 
             function sidebarIsOpen() {
-                const element = sidebar();
-                if (!element) return false;
+                const sidebar = doc.querySelector('[data-testid="stSidebar"]');
+                if (!sidebar) return false;
 
-                const rect = element.getBoundingClientRect();
-                const style = win.getComputedStyle(element);
+                const rect = sidebar.getBoundingClientRect();
+                const style = win.getComputedStyle(sidebar);
 
                 return (
                     rect.width > 80 &&
                     rect.right > 1 &&
                     style.display !== "none" &&
-                    style.visibility !== "hidden" &&
-                    style.transform !== "translateX(-100%)"
+                    style.visibility !== "hidden"
                 );
             }
 
-            function nativeCandidates() {
-                return [
-                    doc.querySelector(
-                        '[data-testid="stSidebarCollapsedControl"] button'
-                    ),
-                    doc.querySelector(
-                        '[data-testid="stSidebarCollapseButton"] button'
-                    ),
-                    doc.querySelector(
-                        '[data-testid="stSidebarCollapsedControl"]'
-                    ),
-                    doc.querySelector(
-                        '[data-testid="stSidebarCollapseButton"]'
-                    ),
-                    doc.querySelector('button[aria-label="Open sidebar"]'),
-                    doc.querySelector('button[aria-label="Close sidebar"]'),
-                    doc.querySelector(
-                        'button[aria-label="Abrir barra lateral"]'
-                    ),
-                    doc.querySelector(
-                        'button[aria-label="Fechar barra lateral"]'
-                    ),
-                    doc.querySelector('button[title="Open sidebar"]'),
-                    doc.querySelector('button[title="Close sidebar"]')
-                ].filter(Boolean);
-            }
+            function getNativeToggle() {
+                const selectors = [
+                    '[data-testid="stSidebarCollapsedControl"] button',
+                    '[data-testid="stSidebarCollapseButton"] button',
+                    '[data-testid="stSidebarCollapsedControl"]',
+                    '[data-testid="stSidebarCollapseButton"]',
+                    'button[aria-label="Open sidebar"]',
+                    'button[aria-label="Close sidebar"]',
+                    'button[aria-label="Abrir barra lateral"]',
+                    'button[aria-label="Fechar barra lateral"]'
+                ];
 
-            function clickNativeToggle() {
-                const before = sidebarIsOpen();
-
-                for (const candidate of nativeCandidates()) {
-                    try {
-                        candidate.click();
-                    } catch (error) {
-                        continue;
-                    }
-
-                    const after = sidebarIsOpen();
-                    if (after !== before) return true;
+                for (const selector of selectors) {
+                    const element = doc.querySelector(selector);
+                    if (element) return element;
                 }
 
-                return false;
+                return null;
             }
 
             function updateButton(button) {
@@ -1062,27 +1033,23 @@ def install_persistent_mobile_menu() -> None:
             }
 
             function ensureButton() {
-                let button = doc.getElementById(ID);
+                let button = doc.getElementById(BUTTON_ID);
 
                 if (!button) {
                     button = doc.createElement("button");
-                    button.id = ID;
+                    button.id = BUTTON_ID;
                     button.type = "button";
 
                     button.addEventListener("click", (event) => {
                         event.preventDefault();
                         event.stopPropagation();
 
-                        clickNativeToggle();
+                        const toggle = getNativeToggle();
+                        if (toggle) {
+                            toggle.click();
+                        }
 
-                        win.setTimeout(
-                            () => updateButton(button),
-                            80
-                        );
-                        win.setTimeout(
-                            () => updateButton(button),
-                            250
-                        );
+                        win.setTimeout(() => updateButton(button), 120);
                     });
 
                     doc.body.appendChild(button);
@@ -1092,93 +1059,48 @@ def install_persistent_mobile_menu() -> None:
                 return button;
             }
 
-            function closeAfterSelection() {
+            function closeMenuAfterSelection() {
                 if (!win.matchMedia("(max-width: 700px)").matches) return;
+                if (!sidebarIsOpen()) return;
 
-                sessionStorage.setItem(
-                    "dashboard-close-sidebar",
-                    "1"
-                );
-
-                win.setTimeout(() => {
-                    if (sidebarIsOpen()) {
-                        clickNativeToggle();
-                    }
-
-                    sessionStorage.removeItem(
-                        "dashboard-close-sidebar"
-                    );
-                    updateButton(ensureButton());
-                }, 130);
+                const toggle = getNativeToggle();
+                if (toggle) {
+                    win.setTimeout(() => toggle.click(), 80);
+                }
             }
 
             function bindNavigation() {
-                const side = sidebar();
-                if (!side) return;
+                const sidebar = doc.querySelector('[data-testid="stSidebar"]');
+                if (!sidebar) return;
 
-                const options = side.querySelectorAll(
+                const options = sidebar.querySelectorAll(
                     '[role="radiogroup"] label, [role="radio"]'
                 );
 
                 options.forEach((option) => {
-                    if (
-                        option.dataset.dashboardCloseBound === "true"
-                    ) {
-                        return;
-                    }
+                    if (option.dataset.dashboardCloseBound === "true") return;
 
                     option.dataset.dashboardCloseBound = "true";
                     option.addEventListener(
                         "click",
-                        closeAfterSelection,
+                        closeMenuAfterSelection,
                         true
                     );
                 });
             }
 
-            function refreshAll() {
-                const button = ensureButton();
-                bindNavigation();
+            const button = ensureButton();
+            bindNavigation();
 
-                if (
-                    sessionStorage.getItem(
-                        "dashboard-close-sidebar"
-                    ) === "1" &&
-                    sidebarIsOpen()
-                ) {
-                    clickNativeToggle();
-                    sessionStorage.removeItem(
-                        "dashboard-close-sidebar"
-                    );
-                }
-
-                updateButton(button);
-            }
-
-            if (!win.__dashboardUniversalMenuInstalled) {
-                win.__dashboardUniversalMenuInstalled = true;
-
-                const observer = new MutationObserver(refreshAll);
-                observer.observe(doc.body, {
-                    childList: true,
-                    subtree: true,
-                    attributes: true,
-                    attributeFilter: [
-                        "style",
-                        "class",
-                        "aria-expanded",
-                        "aria-label"
-                    ]
-                });
-
-                win.addEventListener("resize", refreshAll);
-                win.__dashboardUniversalMenuObserver = observer;
-            }
-
-            refreshAll();
-            win.setTimeout(refreshAll, 150);
-            win.setTimeout(refreshAll, 600);
-            win.setTimeout(refreshAll, 1400);
+            // Repetições curtas apenas durante o carregamento inicial.
+            // Não há observador contínuo nem ciclo permanente.
+            [200, 700, 1600].forEach((delay) => {
+                win.setTimeout(() => {
+                    ensureButton();
+                    bindNavigation();
+                    updateButton(button);
+                }, delay);
+            });
         })();
         </script>
         """,

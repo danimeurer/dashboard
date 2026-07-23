@@ -1,8 +1,8 @@
-# Dashboard de Contratações — menu universal
+# Dashboard de Contratações — menu leve e estável
 
-Correção:
-- botão próprio para abrir/recolher o menu em Chrome, Firefox e Edge;
-- não depende mais da aparência do controle nativo do Streamlit;
-- funciona no notebook, desktop, tablet e celular;
-- no celular, o menu continua recolhendo após selecionar uma opção;
-- cabeçalho, filtros 2x2 e exportação PDF preservados.
+Correção desta versão:
+- removido o observador contínuo que poderia deixar o aplicativo lento;
+- botão do menu criado apenas no carregamento inicial;
+- funcionamento preservado em Chrome, Firefox e Edge;
+- recolhimento automático no celular mantido;
+- filtros 2x2, PDF e planilha privada preservados.
