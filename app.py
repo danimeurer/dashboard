@@ -529,6 +529,76 @@ st.markdown(
         border-color: #185b91 !important;
         color: white !important;
     }
+
+    .st-key-counter_pdf_andamento [data-testid="stHorizontalBlock"],
+    .st-key-counter_pdf_concluidos [data-testid="stHorizontalBlock"] {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        gap: .45rem !important;
+    }
+
+    .st-key-counter_pdf_andamento [data-testid="column"]:first-child,
+    .st-key-counter_pdf_concluidos [data-testid="column"]:first-child {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+    }
+
+    .st-key-counter_pdf_andamento [data-testid="column"]:last-child,
+    .st-key-counter_pdf_concluidos [data-testid="column"]:last-child {
+        flex: 0 0 132px !important;
+        width: 132px !important;
+        min-width: 132px !important;
+    }
+
+    .st-key-counter_pdf_andamento .results-inline,
+    .st-key-counter_pdf_concluidos .results-inline {
+        width: 100% !important;
+        min-height: 36px !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .st-key-counter_pdf_andamento div[data-testid="stDownloadButton"],
+    .st-key-counter_pdf_concluidos div[data-testid="stDownloadButton"] {
+        margin: 0 !important;
+    }
+
+    @media(max-width: 700px) {
+        .st-key-counter_pdf_andamento [data-testid="stHorizontalBlock"],
+        .st-key-counter_pdf_concluidos [data-testid="stHorizontalBlock"] {
+            gap: .3rem !important;
+        }
+
+        .st-key-counter_pdf_andamento [data-testid="column"]:last-child,
+        .st-key-counter_pdf_concluidos [data-testid="column"]:last-child {
+            flex: 0 0 108px !important;
+            width: 108px !important;
+            min-width: 108px !important;
+        }
+
+        .st-key-counter_pdf_andamento div[data-testid="stDownloadButton"] > button,
+        .st-key-counter_pdf_concluidos div[data-testid="stDownloadButton"] > button {
+            height: 34px !important;
+            min-height: 34px !important;
+            padding: 4px 6px !important;
+            font-size: .68rem !important;
+        }
+
+        .st-key-counter_pdf_andamento .results-inline,
+        .st-key-counter_pdf_concluidos .results-inline {
+            padding: 5px 7px !important;
+            font-size: .70rem !important;
+            gap: 4px !important;
+        }
+
+        .st-key-counter_pdf_andamento .results-inline strong,
+        .st-key-counter_pdf_concluidos .results-inline strong {
+            font-size: .92rem !important;
+        }
+    }
+
     </style>
     """,
     unsafe_allow_html=True,
@@ -832,22 +902,67 @@ def install_persistent_mobile_menu() -> None:
                 return button;
             }
 
+            function closeAfterSelection() {
+                if (!win.matchMedia("(max-width: 700px)").matches) return;
+
+                sessionStorage.setItem("dashboard-close-sidebar", "1");
+                win.setTimeout(() => {
+                    const toggle = nativeToggle();
+                    if (sidebarOpen() && toggle) {
+                        toggle.click();
+                    }
+                    sessionStorage.removeItem("dashboard-close-sidebar");
+                    refresh(ensureButton());
+                }, 120);
+            }
+
+            function bindNavigation() {
+                const sidebar = doc.querySelector('[data-testid="stSidebar"]');
+                if (!sidebar) return;
+
+                const options = sidebar.querySelectorAll(
+                    '[role="radiogroup"] label, [role="radio"]'
+                );
+
+                options.forEach((option) => {
+                    if (option.dataset.dashboardCloseBound === "true") return;
+                    option.dataset.dashboardCloseBound = "true";
+                    option.addEventListener("click", closeAfterSelection, true);
+                });
+            }
+
+            function refreshAll() {
+                const button = ensureButton();
+                bindNavigation();
+
+                if (
+                    sessionStorage.getItem("dashboard-close-sidebar") === "1" &&
+                    sidebarOpen()
+                ) {
+                    const toggle = nativeToggle();
+                    if (toggle) toggle.click();
+                    sessionStorage.removeItem("dashboard-close-sidebar");
+                }
+
+                refresh(button);
+            }
+
             if (!win.__dashboardPersistentMobileMenuInstalled) {
                 win.__dashboardPersistentMobileMenuInstalled = true;
-                const observer = new MutationObserver(() => ensureButton());
+                const observer = new MutationObserver(refreshAll);
                 observer.observe(doc.body, {
                     childList: true,
                     subtree: true,
                     attributes: true,
                     attributeFilter: ["style", "class", "aria-expanded"]
                 });
-                win.addEventListener("resize", () => refresh(ensureButton()));
+                win.addEventListener("resize", refreshAll);
                 win.__dashboardMobileMenuObserver = observer;
             }
 
-            ensureButton();
-            win.setTimeout(ensureButton, 150);
-            win.setTimeout(ensureButton, 600);
+            refreshAll();
+            win.setTimeout(refreshAll, 150);
+            win.setTimeout(refreshAll, 600);
         })();
         </script>
         """,
@@ -1807,20 +1922,25 @@ elif page == "Processos concluídos":
     view = concluidos.loc[mask].copy()
     responsavel = find_col(view, ["RESPONSÁVEL", "RESPONSAVEL"])
     if responsavel in view.columns: view = view.drop(columns=[responsavel])
-    counter_col, pdf_col = st.columns([1, 0.24], gap="small")
-    with counter_col:
-        st.markdown(
-            f'<div class="results-inline"><span>Resultados encontrados:</span>'
-            f'<strong>{len(view)}</strong></div>',
-            unsafe_allow_html=True,
+    with st.container(key="counter_pdf_concluidos"):
+        counter_col, pdf_col = st.columns(
+            [1, 0.22],
+            gap="small",
+            vertical_alignment="center",
         )
-    with pdf_col:
-        pdf_download_button(
-            view,
-            "Processos concluídos",
-            "processos_concluidos.pdf",
-            "pdf_processos_concluidos",
-        )
+        with counter_col:
+            st.markdown(
+                f'<div class="results-inline"><span>Resultados encontrados:</span>'
+                f'<strong>{len(view)}</strong></div>',
+                unsafe_allow_html=True,
+            )
+        with pdf_col:
+            pdf_download_button(
+                view,
+                "Processos concluídos",
+                "processos_concluidos.pdf",
+                "pdf_processos_concluidos",
+            )
     concluded_widths: dict[str, str | int] = {
         column: 105 for column in view.columns
     }
@@ -1924,20 +2044,25 @@ elif page == "Em andamento":
     if dias_col and dias_col in table_view.columns:
         andamento_widths[dias_col] = 75
 
-    counter_col, pdf_col = st.columns([1, 0.24], gap="small")
-    with counter_col:
-        st.markdown(
-            f'<div class="results-inline"><span>Processos ativos:</span>'
-            f'<strong>{len(view)}</strong></div>',
-            unsafe_allow_html=True,
+    with st.container(key="counter_pdf_andamento"):
+        counter_col, pdf_col = st.columns(
+            [1, 0.22],
+            gap="small",
+            vertical_alignment="center",
         )
-    with pdf_col:
-        pdf_download_button(
-            table_view,
-            "Processos em andamento",
-            "processos_em_andamento.pdf",
-            "pdf_processos_em_andamento",
-        )
+        with counter_col:
+            st.markdown(
+                f'<div class="results-inline"><span>Processos ativos:</span>'
+                f'<strong>{len(view)}</strong></div>',
+                unsafe_allow_html=True,
+            )
+        with pdf_col:
+            pdf_download_button(
+                table_view,
+                "Processos em andamento",
+                "processos_em_andamento.pdf",
+                "pdf_processos_em_andamento",
+            )
 
     # Aproximadamente cinco linhas a menos para não gerar rolagem externa vertical.
     display_table(

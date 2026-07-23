@@ -1,6 +1,7 @@
-# Dashboard de Contratações — correção do PDF
+# Dashboard de Contratações — ajuste mobile final
 
-- removido o botão PDF duplicado de Processos concluídos;
-- corrigido o erro StreamlitDuplicateElementKey;
-- botão PDF alinhado ao lado do contador em Em andamento e Processos concluídos;
-- menu hambúrguer fixo no celular preservado.
+- menu recolhe automaticamente após selecionar uma opção no celular;
+- botão hambúrguer continua fixo;
+- botão PDF permanece na mesma linha do contador;
+- alinhamento forçado também no celular;
+- acesso privado e demais funções preservados.
