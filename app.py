@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
+from io import BytesIO
 import base64
 import re
 import unicodedata
@@ -13,6 +14,12 @@ import gspread
 from google.oauth2.service_account import Credentials
 import streamlit as st
 import streamlit.components.v1 as components
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import mm
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 SPREADSHEET_ID = "1pqmFc5FQE6rbCeR321-FHFuTdghpkPGr2XF0irQfjGc"
 SHEETS = {
@@ -420,6 +427,71 @@ st.markdown(
         .block-container {padding-left: .8rem; padding-right: .8rem;}
         .card {height: 96px;}
         .card-note {white-space: normal;}
+    }
+
+    /* No celular, mantém visível o botão que abre/fecha o menu lateral. */
+    @media(max-width: 700px) {
+        header[data-testid="stHeader"],
+        [data-testid="stHeader"] {
+            display: block !important;
+            visibility: visible !important;
+            height: 3.1rem !important;
+            min-height: 3.1rem !important;
+            background: transparent !important;
+            pointer-events: none !important;
+        }
+        [data-testid="stHeader"] > div {
+            background: transparent !important;
+        }
+        [data-testid="stSidebarCollapsedControl"],
+        [data-testid="stSidebarCollapseButton"],
+        button[kind="header"] {
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            z-index: 1000001 !important;
+        }
+        [data-testid="stSidebarCollapsedControl"] {
+            position: fixed !important;
+            top: .45rem !important;
+            left: .45rem !important;
+        }
+        [data-testid="stSidebarCollapseButton"] {
+            position: relative !important;
+            z-index: 1000002 !important;
+        }
+        [data-testid="stToolbar"],
+        [data-testid="stDecoration"],
+        [data-testid="stStatusWidget"],
+        #MainMenu {
+            display: none !important;
+        }
+        .block-container {
+            padding-top: 3.55rem !important;
+            padding-left: .65rem !important;
+            padding-right: .65rem !important;
+        }
+        .top-brand {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+        }
+        .brand-meta {text-align:left;}
+    }
+
+    div[data-testid="stDownloadButton"] > button {
+        background: #1f6fb2 !important;
+        color: white !important;
+        border: 1px solid #1f6fb2 !important;
+        border-radius: 9px !important;
+        font-weight: 750 !important;
+        min-height: 38px !important;
+    }
+    div[data-testid="stDownloadButton"] > button:hover {
+        background: #185b91 !important;
+        border-color: #185b91 !important;
+        color: white !important;
     }
     </style>
     """,
@@ -920,6 +992,142 @@ def install_responsive_table_resizer(
         width=0,
     )
 
+
+def _pdf_text(value: object) -> str:
+    """Converte valores da tabela em texto seguro para o PDF."""
+    if value is None or pd.isna(value):
+        return ""
+    if isinstance(value, pd.Timestamp):
+        return value.strftime("%d/%m/%Y")
+    return str(value).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def dataframe_to_pdf(df: pd.DataFrame, title: str) -> bytes:
+    """Gera um PDF paisagem, paginado e com cabeçalho repetido."""
+    buffer = BytesIO()
+    page_width, page_height = landscape(A4)
+    margin = 11 * mm
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=(page_width, page_height),
+        rightMargin=margin,
+        leftMargin=margin,
+        topMargin=11 * mm,
+        bottomMargin=11 * mm,
+        title=title,
+        author="CRF/SC - Comissão de Compras e Contratações",
+    )
+
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        "PdfTitle",
+        parent=styles["Title"],
+        fontName="Helvetica-Bold",
+        fontSize=15,
+        leading=18,
+        textColor=colors.HexColor("#123653"),
+        alignment=TA_CENTER,
+        spaceAfter=4 * mm,
+    )
+    info_style = ParagraphStyle(
+        "PdfInfo",
+        parent=styles["Normal"],
+        fontName="Helvetica",
+        fontSize=8,
+        leading=10,
+        textColor=colors.HexColor("#526679"),
+        alignment=TA_CENTER,
+        spaceAfter=4 * mm,
+    )
+    header_style = ParagraphStyle(
+        "PdfHeader",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
+        fontSize=7.2,
+        leading=8.5,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor("#123653"),
+    )
+    cell_style = ParagraphStyle(
+        "PdfCell",
+        parent=styles["Normal"],
+        fontName="Helvetica",
+        fontSize=6.8,
+        leading=8.2,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor("#26394d"),
+    )
+
+    clean = df.copy().reset_index(drop=True).fillna("")
+    story = [
+        Paragraph(title, title_style),
+        Paragraph(
+            f"Gerado em {datetime.now().strftime('%d/%m/%Y às %H:%M')} - "
+            f"{len(clean)} registro(s)",
+            info_style,
+        ),
+    ]
+
+    if clean.empty:
+        story.append(Paragraph("Nenhum registro encontrado.", cell_style))
+        doc.build(story)
+        return buffer.getvalue()
+
+    headers = [Paragraph(_pdf_text(column), header_style) for column in clean.columns]
+    rows = [headers]
+    for _, row in clean.iterrows():
+        rows.append([Paragraph(_pdf_text(value), cell_style) for value in row.tolist()])
+
+    usable_width = page_width - (2 * margin)
+    text_lengths = []
+    for column in clean.columns:
+        sample = clean[column].astype(str).head(40).tolist()
+        longest = max([len(str(column))] + [min(len(value), 70) for value in sample])
+        text_lengths.append(max(6, longest))
+    total_weight = sum(text_lengths) or 1
+    min_width = 18 * mm
+    raw_widths = [max(min_width, usable_width * weight / total_weight) for weight in text_lengths]
+    scale = usable_width / sum(raw_widths)
+    col_widths = [width * scale for width in raw_widths]
+
+    table = Table(
+        rows,
+        colWidths=col_widths,
+        repeatRows=1,
+        hAlign="CENTER",
+        splitByRow=1,
+    )
+    table_style = [
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#dcebf7")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#123653")),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#c9d7e3")),
+        ("TOPPADDING", (0, 0), (-1, -1), 3),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+    ]
+    for row_number in range(1, len(rows)):
+        background = "#ffffff" if row_number % 2 else "#f3f7fa"
+        table_style.append(
+            ("BACKGROUND", (0, row_number), (-1, row_number), colors.HexColor(background))
+        )
+    table.setStyle(TableStyle(table_style))
+    story.extend([table, Spacer(1, 2 * mm)])
+    doc.build(story)
+    return buffer.getvalue()
+
+
+def pdf_download_button(df: pd.DataFrame, title: str, file_name: str, key: str) -> None:
+    """Exibe o botão para baixar exatamente a lista filtrada da tela."""
+    st.download_button(
+        label="📄 Baixar lista em PDF",
+        data=dataframe_to_pdf(df, title),
+        file_name=file_name,
+        mime="application/pdf",
+        key=key,
+        use_container_width=False,
+    )
+
 def display_table(
     df: pd.DataFrame,
     height: int = 420,
@@ -1313,6 +1521,12 @@ elif page == "Contratos":
         if "DIAS PARA VENCER" in view:
             view["DIAS PARA VENCER"] = numeric(view["DIAS PARA VENCER"])
             view = view.sort_values("DIAS PARA VENCER")
+        pdf_download_button(
+            view,
+            "Contratos a vencer",
+            "contratos_a_vencer.pdf",
+            "pdf_contratos_a_vencer",
+        )
         display_table(
             view,
             500,
@@ -1340,6 +1554,12 @@ elif page == "Contratos":
         if "Dias a Vencer" in view:
             view["Dias a Vencer"] = numeric(view["Dias a Vencer"])
             view = view.sort_values("Dias a Vencer")
+        pdf_download_button(
+            view,
+            "Apostilamentos",
+            "apostilamentos.pdf",
+            "pdf_apostilamentos",
+        )
         display_table(
             view,
             500,
@@ -1368,6 +1588,12 @@ elif page == "Contratos":
         if expired_order:
             expired = expired[expired_order]
         st.error(f"{len(expired)} contrato(s) vencido(s) identificado(s).")
+        pdf_download_button(
+            expired,
+            "Contratos vencidos",
+            "contratos_vencidos.pdf",
+            "pdf_contratos_vencidos",
+        )
         display_table(
             expired,
             500,
@@ -1407,6 +1633,13 @@ elif page == "Contratos":
                 todos_widths[column] = 115
             elif "DIA" in normalized:
                 todos_widths[column] = 90
+
+        pdf_download_button(
+            view,
+            "Todos os contratos",
+            "todos_os_contratos.pdf",
+            "pdf_todos_contratos",
+        )
 
         # Quatro linhas a menos para evitar rolagem vertical externa da página.
         display_table(
@@ -1460,6 +1693,12 @@ elif page == "Processos concluídos":
     if p_dias and p_dias in view.columns:
         concluded_widths[p_dias] = 85
 
+    pdf_download_button(
+        view,
+        "Processos concluídos",
+        "processos_concluidos.pdf",
+        "pdf_processos_concluidos",
+    )
     display_table(
         view,
         650,
@@ -1553,6 +1792,13 @@ elif page == "Em andamento":
     dias_col = find_col(table_view, ["DIAS"])
     if dias_col and dias_col in table_view.columns:
         andamento_widths[dias_col] = 75
+
+    pdf_download_button(
+        table_view,
+        "Processos em andamento",
+        "processos_em_andamento.pdf",
+        "pdf_processos_em_andamento",
+    )
 
     # Aproximadamente cinco linhas a menos para não gerar rolagem externa vertical.
     display_table(

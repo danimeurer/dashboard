@@ -1,11 +1,12 @@
-# Dashboard de Contratações — pesquisa nativa dinâmica
+# Dashboard de Contratações - Menu móvel e exportação PDF
 
-Correção definitiva dos campos de pesquisa:
-- removido o componente st_keyup que criava faixas brancas;
-- restaurados os campos nativos do Streamlit;
-- visual idêntico aos demais filtros;
-- filtragem automática após 350 ms sem digitação;
-- aplicado em Em andamento, Contratos e Processos concluídos;
-- acesso à planilha privada e cabeçalho corrigido preservados.
+Alterações desta versão:
+- botão do menu lateral restaurado no celular;
+- layout do cabeçalho adaptado para telas pequenas;
+- exportação em PDF nas listas de Processos em andamento;
+- exportação em PDF em todas as abas de Contratos;
+- exportação em PDF em Processos concluídos;
+- os PDFs respeitam os filtros e pesquisas aplicados;
+- planilha privada e pesquisa dinâmica preservadas.
 
-Substitua todos os arquivos no repositório, incluindo requirements.txt, faça Commit e Push origin.
+Substitua todos os arquivos no GitHub, inclusive `requirements.txt`.
