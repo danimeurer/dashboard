@@ -541,20 +541,23 @@ st.markdown(
         flex-wrap: nowrap !important;
         justify-content: flex-start !important;
         align-items: center !important;
-        gap: .45rem !important;
+        gap: .38rem !important;
+        width: 100% !important;
     }
 
-    .st-key-counter_pdf_andamento [data-testid="column"]:first-child,
-    .st-key-counter_pdf_concluidos [data-testid="column"]:first-child {
+    .st-key-counter_pdf_andamento [data-testid="stColumn"]:first-child,
+    .st-key-counter_pdf_concluidos [data-testid="stColumn"]:first-child {
         flex: 0 0 auto !important;
-        width: auto !important;
+        width: fit-content !important;
+        max-width: fit-content !important;
         min-width: 0 !important;
     }
 
-    .st-key-counter_pdf_andamento [data-testid="column"]:last-child,
-    .st-key-counter_pdf_concluidos [data-testid="column"]:last-child {
+    .st-key-counter_pdf_andamento [data-testid="stColumn"]:last-child,
+    .st-key-counter_pdf_concluidos [data-testid="stColumn"]:last-child {
         flex: 0 0 124px !important;
         width: 124px !important;
+        max-width: 124px !important;
         min-width: 124px !important;
     }
 
@@ -586,10 +589,11 @@ st.markdown(
             gap: .28rem !important;
         }
 
-        .st-key-counter_pdf_andamento [data-testid="column"]:last-child,
-        .st-key-counter_pdf_concluidos [data-testid="column"]:last-child {
+        .st-key-counter_pdf_andamento [data-testid="stColumn"]:last-child,
+        .st-key-counter_pdf_concluidos [data-testid="stColumn"]:last-child {
             flex: 0 0 102px !important;
             width: 102px !important;
+            max-width: 102px !important;
             min-width: 102px !important;
         }
 
