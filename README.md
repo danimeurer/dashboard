@@ -1,9 +1,8 @@
-# Dashboard de Contratações — menu do notebook corrigido
+# Dashboard de Contratações — menu universal
 
-Correção aplicada:
-- botão para abrir o menu sempre disponível no notebook e desktop;
-- botão para recolher o menu preservado;
-- barra superior do Streamlit continua invisível;
-- cabeçalho institucional não volta a ser cortado;
-- no celular permanece o hambúrguer fixo customizado;
-- filtros 2x2 e PDF alinhado foram preservados.
+Correção:
+- botão próprio para abrir/recolher o menu em Chrome, Firefox e Edge;
+- não depende mais da aparência do controle nativo do Streamlit;
+- funciona no notebook, desktop, tablet e celular;
+- no celular, o menu continua recolhendo após selecionar uma opção;
+- cabeçalho, filtros 2x2 e exportação PDF preservados.

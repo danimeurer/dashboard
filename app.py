@@ -97,23 +97,34 @@ st.markdown(
         background: transparent !important;
     }
 
-    /* No computador, o controle nativo permanece sempre disponível para
-       abrir ou recolher o menu, sem exibir a barra superior do Streamlit. */
+    /*
+    Os controles nativos variam entre Chrome, Firefox, Edge e versões do
+    Streamlit. Eles ficam invisíveis, mas continuam no DOM para receber o
+    clique do botão institucional abaixo.
+    */
     [data-testid="stSidebarCollapsedControl"],
     [data-testid="stSidebarCollapseButton"] {
-        display: flex !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        pointer-events: auto !important;
         position: fixed !important;
-        top: 8px !important;
-        left: 8px !important;
-        z-index: 2147483646 !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 1px !important;
+        height: 1px !important;
+        min-width: 1px !important;
+        min-height: 1px !important;
+        opacity: 0 !important;
+        visibility: visible !important;
+        display: block !important;
+        overflow: hidden !important;
+        pointer-events: none !important;
+        z-index: -1 !important;
     }
 
     [data-testid="stSidebarCollapsedControl"] button,
     [data-testid="stSidebarCollapseButton"] button {
-        pointer-events: auto !important;
+        width: 1px !important;
+        height: 1px !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
     }
     [data-testid="stToolbar"],
     [data-testid="stDecoration"],
@@ -469,14 +480,6 @@ st.markdown(
         [data-testid="stHeader"] > div {
             background: transparent !important;
         }
-        [data-testid="stSidebarCollapsedControl"],
-        [data-testid="stSidebarCollapseButton"] {
-            display: none !important;
-            visibility: hidden !important;
-            opacity: 0 !important;
-            pointer-events: none !important;
-        }
-
         #dashboard-mobile-menu-toggle {
             display: flex !important;
         }
@@ -501,7 +504,7 @@ st.markdown(
 
 
     #dashboard-mobile-menu-toggle {
-        display: none;
+        display: flex;
         position: fixed;
         top: 10px;
         left: 10px;
@@ -735,26 +738,9 @@ st.markdown(
 
 
     @media(min-width: 701px) {
-        [data-testid="stSidebarCollapsedControl"] {
-            width: 42px !important;
-            height: 42px !important;
-            border-radius: 11px !important;
-            background: #123653 !important;
-            box-shadow: 0 5px 18px rgba(18,54,83,.28) !important;
-        }
-
-        [data-testid="stSidebarCollapsedControl"] button {
-            width: 42px !important;
-            height: 42px !important;
-            color: #ffffff !important;
-            background: transparent !important;
-        }
-
-        [data-testid="stSidebarCollapseButton"] {
-            top: 2px !important;
-            left: auto !important;
-            right: 8px !important;
-            position: absolute !important;
+        #dashboard-mobile-menu-toggle {
+            top: 10px;
+            left: 10px;
         }
     }
 
@@ -994,7 +980,7 @@ def aligned_mask(df: pd.DataFrame, condition: pd.Series) -> pd.Series:
 
 
 def install_persistent_mobile_menu() -> None:
-    """Cria um botão hambúrguer fixo para abrir e fechar o menu no celular."""
+    """Cria um botão universal para abrir e recolher a barra lateral."""
     components.html(
         """
         <script>
@@ -1003,90 +989,150 @@ def install_persistent_mobile_menu() -> None:
             const doc = win.document;
             const ID = "dashboard-mobile-menu-toggle";
 
-            function nativeToggle() {
-                const selectors = [
-                    '[data-testid="stSidebarCollapsedControl"] button',
-                    '[data-testid="stSidebarCollapseButton"] button',
-                    'button[aria-label="Open sidebar"]',
-                    'button[aria-label="Close sidebar"]',
-                    'button[aria-label="Abrir barra lateral"]',
-                    'button[aria-label="Fechar barra lateral"]',
-                    '[data-testid="stSidebarCollapsedControl"]',
-                    '[data-testid="stSidebarCollapseButton"]'
-                ];
-                for (const selector of selectors) {
-                    const item = doc.querySelector(selector);
-                    if (item) return item;
-                }
-                return null;
+            function sidebar() {
+                return doc.querySelector('[data-testid="stSidebar"]');
             }
 
-            function sidebarOpen() {
-                const sidebar = doc.querySelector('[data-testid="stSidebar"]');
-                if (!sidebar) return false;
-                const rect = sidebar.getBoundingClientRect();
-                const style = win.getComputedStyle(sidebar);
-                return rect.width > 80 && rect.right > 0 &&
+            function sidebarIsOpen() {
+                const element = sidebar();
+                if (!element) return false;
+
+                const rect = element.getBoundingClientRect();
+                const style = win.getComputedStyle(element);
+
+                return (
+                    rect.width > 80 &&
+                    rect.right > 1 &&
                     style.display !== "none" &&
-                    style.visibility !== "hidden";
+                    style.visibility !== "hidden" &&
+                    style.transform !== "translateX(-100%)"
+                );
             }
 
-            function refresh(button) {
-                const mobile = win.matchMedia("(max-width: 700px)").matches;
-                button.style.display = mobile ? "flex" : "none";
-                const open = sidebarOpen();
-                button.title = open ? "Fechar menu" : "Abrir menu";
+            function nativeCandidates() {
+                return [
+                    doc.querySelector(
+                        '[data-testid="stSidebarCollapsedControl"] button'
+                    ),
+                    doc.querySelector(
+                        '[data-testid="stSidebarCollapseButton"] button'
+                    ),
+                    doc.querySelector(
+                        '[data-testid="stSidebarCollapsedControl"]'
+                    ),
+                    doc.querySelector(
+                        '[data-testid="stSidebarCollapseButton"]'
+                    ),
+                    doc.querySelector('button[aria-label="Open sidebar"]'),
+                    doc.querySelector('button[aria-label="Close sidebar"]'),
+                    doc.querySelector(
+                        'button[aria-label="Abrir barra lateral"]'
+                    ),
+                    doc.querySelector(
+                        'button[aria-label="Fechar barra lateral"]'
+                    ),
+                    doc.querySelector('button[title="Open sidebar"]'),
+                    doc.querySelector('button[title="Close sidebar"]')
+                ].filter(Boolean);
+            }
+
+            function clickNativeToggle() {
+                const before = sidebarIsOpen();
+
+                for (const candidate of nativeCandidates()) {
+                    try {
+                        candidate.click();
+                    } catch (error) {
+                        continue;
+                    }
+
+                    const after = sidebarIsOpen();
+                    if (after !== before) return true;
+                }
+
+                return false;
+            }
+
+            function updateButton(button) {
+                const open = sidebarIsOpen();
+                button.textContent = open ? "×" : "☰";
+                button.title = open ? "Recolher menu" : "Abrir menu";
                 button.setAttribute("aria-label", button.title);
+                button.style.display = "flex";
             }
 
             function ensureButton() {
                 let button = doc.getElementById(ID);
+
                 if (!button) {
                     button = doc.createElement("button");
                     button.id = ID;
                     button.type = "button";
-                    button.textContent = "☰";
+
                     button.addEventListener("click", (event) => {
                         event.preventDefault();
                         event.stopPropagation();
-                        const toggle = nativeToggle();
-                        if (toggle) {
-                            toggle.click();
-                            win.setTimeout(() => refresh(button), 120);
-                        }
+
+                        clickNativeToggle();
+
+                        win.setTimeout(
+                            () => updateButton(button),
+                            80
+                        );
+                        win.setTimeout(
+                            () => updateButton(button),
+                            250
+                        );
                     });
+
                     doc.body.appendChild(button);
                 }
-                refresh(button);
+
+                updateButton(button);
                 return button;
             }
 
             function closeAfterSelection() {
                 if (!win.matchMedia("(max-width: 700px)").matches) return;
 
-                sessionStorage.setItem("dashboard-close-sidebar", "1");
+                sessionStorage.setItem(
+                    "dashboard-close-sidebar",
+                    "1"
+                );
+
                 win.setTimeout(() => {
-                    const toggle = nativeToggle();
-                    if (sidebarOpen() && toggle) {
-                        toggle.click();
+                    if (sidebarIsOpen()) {
+                        clickNativeToggle();
                     }
-                    sessionStorage.removeItem("dashboard-close-sidebar");
-                    refresh(ensureButton());
-                }, 120);
+
+                    sessionStorage.removeItem(
+                        "dashboard-close-sidebar"
+                    );
+                    updateButton(ensureButton());
+                }, 130);
             }
 
             function bindNavigation() {
-                const sidebar = doc.querySelector('[data-testid="stSidebar"]');
-                if (!sidebar) return;
+                const side = sidebar();
+                if (!side) return;
 
-                const options = sidebar.querySelectorAll(
+                const options = side.querySelectorAll(
                     '[role="radiogroup"] label, [role="radio"]'
                 );
 
                 options.forEach((option) => {
-                    if (option.dataset.dashboardCloseBound === "true") return;
+                    if (
+                        option.dataset.dashboardCloseBound === "true"
+                    ) {
+                        return;
+                    }
+
                     option.dataset.dashboardCloseBound = "true";
-                    option.addEventListener("click", closeAfterSelection, true);
+                    option.addEventListener(
+                        "click",
+                        closeAfterSelection,
+                        true
+                    );
                 });
             }
 
@@ -1095,33 +1141,44 @@ def install_persistent_mobile_menu() -> None:
                 bindNavigation();
 
                 if (
-                    sessionStorage.getItem("dashboard-close-sidebar") === "1" &&
-                    sidebarOpen()
+                    sessionStorage.getItem(
+                        "dashboard-close-sidebar"
+                    ) === "1" &&
+                    sidebarIsOpen()
                 ) {
-                    const toggle = nativeToggle();
-                    if (toggle) toggle.click();
-                    sessionStorage.removeItem("dashboard-close-sidebar");
+                    clickNativeToggle();
+                    sessionStorage.removeItem(
+                        "dashboard-close-sidebar"
+                    );
                 }
 
-                refresh(button);
+                updateButton(button);
             }
 
-            if (!win.__dashboardPersistentMobileMenuInstalled) {
-                win.__dashboardPersistentMobileMenuInstalled = true;
+            if (!win.__dashboardUniversalMenuInstalled) {
+                win.__dashboardUniversalMenuInstalled = true;
+
                 const observer = new MutationObserver(refreshAll);
                 observer.observe(doc.body, {
                     childList: true,
                     subtree: true,
                     attributes: true,
-                    attributeFilter: ["style", "class", "aria-expanded"]
+                    attributeFilter: [
+                        "style",
+                        "class",
+                        "aria-expanded",
+                        "aria-label"
+                    ]
                 });
+
                 win.addEventListener("resize", refreshAll);
-                win.__dashboardMobileMenuObserver = observer;
+                win.__dashboardUniversalMenuObserver = observer;
             }
 
             refreshAll();
             win.setTimeout(refreshAll, 150);
             win.setTimeout(refreshAll, 600);
+            win.setTimeout(refreshAll, 1400);
         })();
         </script>
         """,
