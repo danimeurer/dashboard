@@ -500,6 +500,22 @@ st.markdown(
         background: #1f6fb2;
     }
 
+    /* Mantém contador e botão PDF realmente na mesma linha. */
+    div[data-testid="stHorizontalBlock"]:has(.results-inline) {
+        align-items: center !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(.results-inline)
+    div[data-testid="stDownloadButton"] {
+        margin-top: -1px !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(.results-inline)
+    div[data-testid="stDownloadButton"] > button {
+        height: 36px !important;
+        min-height: 36px !important;
+        padding: 5px 12px !important;
+        white-space: nowrap !important;
+    }
+
     div[data-testid="stDownloadButton"] > button {
         background: #1f6fb2 !important;
         color: white !important;
@@ -1819,12 +1835,6 @@ elif page == "Processos concluídos":
     if p_dias and p_dias in view.columns:
         concluded_widths[p_dias] = 85
 
-    pdf_download_button(
-        view,
-        "Processos concluídos",
-        "processos_concluidos.pdf",
-        "pdf_processos_concluidos",
-    )
     display_table(
         view,
         650,

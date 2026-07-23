@@ -1,7 +1,6 @@
-# Dashboard de Contratações — Menu móvel fixo e PDF compacto
+# Dashboard de Contratações — correção do PDF
 
-- botão hambúrguer permanente no celular;
-- o botão abre e fecha o menu lateral;
-- PDF ao lado do contador em Em andamento;
-- PDF ao lado do contador em Processos concluídos;
-- filtros, planilha privada e demais funções preservados.
+- removido o botão PDF duplicado de Processos concluídos;
+- corrigido o erro StreamlitDuplicateElementKey;
+- botão PDF alinhado ao lado do contador em Em andamento e Processos concluídos;
+- menu hambúrguer fixo no celular preservado.
