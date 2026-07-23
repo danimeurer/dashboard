@@ -84,10 +84,36 @@ st.markdown(
        sobrepor o cabeçalho institucional do dashboard. */
     header[data-testid="stHeader"],
     [data-testid="stHeader"] {
+        display: block !important;
+        visibility: visible !important;
         height: 0 !important;
         min-height: 0 !important;
-        visibility: hidden !important;
-        display: none !important;
+        background: transparent !important;
+        pointer-events: none !important;
+        overflow: visible !important;
+    }
+
+    [data-testid="stHeader"] > div {
+        background: transparent !important;
+    }
+
+    /* No computador, o controle nativo permanece sempre disponível para
+       abrir ou recolher o menu, sem exibir a barra superior do Streamlit. */
+    [data-testid="stSidebarCollapsedControl"],
+    [data-testid="stSidebarCollapseButton"] {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        position: fixed !important;
+        top: 8px !important;
+        left: 8px !important;
+        z-index: 2147483646 !important;
+    }
+
+    [data-testid="stSidebarCollapsedControl"] button,
+    [data-testid="stSidebarCollapseButton"] button {
+        pointer-events: auto !important;
     }
     [data-testid="stToolbar"],
     [data-testid="stDecoration"],
@@ -444,8 +470,9 @@ st.markdown(
             background: transparent !important;
         }
         [data-testid="stSidebarCollapsedControl"],
-        [data-testid="stSidebarCollapseButton"],
-        button[kind="header"] {
+        [data-testid="stSidebarCollapseButton"] {
+            display: none !important;
+            visibility: hidden !important;
             opacity: 0 !important;
             pointer-events: none !important;
         }
@@ -703,6 +730,31 @@ st.markdown(
             height: 34px !important;
             min-height: 34px !important;
             max-height: 34px !important;
+        }
+    }
+
+
+    @media(min-width: 701px) {
+        [data-testid="stSidebarCollapsedControl"] {
+            width: 42px !important;
+            height: 42px !important;
+            border-radius: 11px !important;
+            background: #123653 !important;
+            box-shadow: 0 5px 18px rgba(18,54,83,.28) !important;
+        }
+
+        [data-testid="stSidebarCollapsedControl"] button {
+            width: 42px !important;
+            height: 42px !important;
+            color: #ffffff !important;
+            background: transparent !important;
+        }
+
+        [data-testid="stSidebarCollapseButton"] {
+            top: 2px !important;
+            left: auto !important;
+            right: 8px !important;
+            position: absolute !important;
         }
     }
 

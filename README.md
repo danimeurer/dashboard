@@ -1,9 +1,9 @@
-# Dashboard de Contratações — filtros mobile 2x2
+# Dashboard de Contratações — menu do notebook corrigido
 
-Alterações:
-- Em andamento: dois filtros por linha somente no celular;
-- Processos concluídos: dois filtros por linha somente no celular;
-- desktop preservado com quatro filtros na mesma linha;
-- contador e botão PDF com exatamente a mesma altura;
-- botão PDF permanece imediatamente ao lado do contador;
-- menu móvel e acesso à planilha privada preservados.
+Correção aplicada:
+- botão para abrir o menu sempre disponível no notebook e desktop;
+- botão para recolher o menu preservado;
+- barra superior do Streamlit continua invisível;
+- cabeçalho institucional não volta a ser cortado;
+- no celular permanece o hambúrguer fixo customizado;
+- filtros 2x2 e PDF alinhado foram preservados.
