@@ -1,8 +1,7 @@
-# Dashboard de Contratações — menu leve e estável
+# Dashboard de Contratações — Apostilamentos negativos
 
-Correção desta versão:
-- removido o observador contínuo que poderia deixar o aplicativo lento;
-- botão do menu criado apenas no carregamento inicial;
-- funcionamento preservado em Chrome, Firefox e Edge;
-- recolhimento automático no celular mantido;
-- filtros 2x2, PDF e planilha privada preservados.
+Correção aplicada em Contratos > Apostilamentos:
+- agora são exibidos também os registros com Dias a Vencer negativos;
+- o prazo máximo selecionado continua sendo respeitado;
+- os registros permanecem ordenados do menor para o maior número de dias;
+- as demais telas e funções não foram alteradas.

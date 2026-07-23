@@ -1927,7 +1927,8 @@ elif page == "Contratos":
         )
     with t2:
         days = st.slider("Prazo do apostilamento", 1, 120, 60)
-        mask = (apost_dias >= 0) & (apost_dias <= days)
+        # Inclui também apostilamentos vencidos, representados por dias negativos.
+        mask = apost_dias <= days
         view = contratos.loc[aligned_mask(contratos, mask)].copy()
         selected = [c for c in [c_empresa, c_objeto, c_apost_dias] if c and c in view.columns]
         view = view[selected].copy() if selected else view
