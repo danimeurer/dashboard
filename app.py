@@ -446,20 +446,12 @@ st.markdown(
         [data-testid="stSidebarCollapsedControl"],
         [data-testid="stSidebarCollapseButton"],
         button[kind="header"] {
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+
+        #dashboard-mobile-menu-toggle {
             display: flex !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            pointer-events: auto !important;
-            z-index: 1000001 !important;
-        }
-        [data-testid="stSidebarCollapsedControl"] {
-            position: fixed !important;
-            top: .45rem !important;
-            left: .45rem !important;
-        }
-        [data-testid="stSidebarCollapseButton"] {
-            position: relative !important;
-            z-index: 1000002 !important;
         }
         [data-testid="stToolbar"],
         [data-testid="stDecoration"],
@@ -478,6 +470,34 @@ st.markdown(
             gap: 5px;
         }
         .brand-meta {text-align:left;}
+    }
+
+
+    #dashboard-mobile-menu-toggle {
+        display: none;
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        width: 42px;
+        height: 42px;
+        padding: 0;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(255,255,255,.30);
+        border-radius: 11px;
+        background: #123653;
+        color: #ffffff;
+        font-size: 24px;
+        font-weight: 700;
+        line-height: 1;
+        cursor: pointer;
+        box-shadow: 0 5px 18px rgba(18,54,83,.28);
+        z-index: 2147483647;
+        -webkit-tap-highlight-color: transparent;
+    }
+    #dashboard-mobile-menu-toggle:hover,
+    #dashboard-mobile-menu-toggle:active {
+        background: #1f6fb2;
     }
 
     div[data-testid="stDownloadButton"] > button {
@@ -725,6 +745,99 @@ def aligned_mask(df: pd.DataFrame, condition: pd.Series) -> pd.Series:
     return condition.reindex(df.index, fill_value=False).fillna(False).astype(bool)
 
 
+
+
+
+def install_persistent_mobile_menu() -> None:
+    """Cria um botão hambúrguer fixo para abrir e fechar o menu no celular."""
+    components.html(
+        """
+        <script>
+        (() => {
+            const win = window.parent;
+            const doc = win.document;
+            const ID = "dashboard-mobile-menu-toggle";
+
+            function nativeToggle() {
+                const selectors = [
+                    '[data-testid="stSidebarCollapsedControl"] button',
+                    '[data-testid="stSidebarCollapseButton"] button',
+                    'button[aria-label="Open sidebar"]',
+                    'button[aria-label="Close sidebar"]',
+                    'button[aria-label="Abrir barra lateral"]',
+                    'button[aria-label="Fechar barra lateral"]',
+                    '[data-testid="stSidebarCollapsedControl"]',
+                    '[data-testid="stSidebarCollapseButton"]'
+                ];
+                for (const selector of selectors) {
+                    const item = doc.querySelector(selector);
+                    if (item) return item;
+                }
+                return null;
+            }
+
+            function sidebarOpen() {
+                const sidebar = doc.querySelector('[data-testid="stSidebar"]');
+                if (!sidebar) return false;
+                const rect = sidebar.getBoundingClientRect();
+                const style = win.getComputedStyle(sidebar);
+                return rect.width > 80 && rect.right > 0 &&
+                    style.display !== "none" &&
+                    style.visibility !== "hidden";
+            }
+
+            function refresh(button) {
+                const mobile = win.matchMedia("(max-width: 700px)").matches;
+                button.style.display = mobile ? "flex" : "none";
+                const open = sidebarOpen();
+                button.title = open ? "Fechar menu" : "Abrir menu";
+                button.setAttribute("aria-label", button.title);
+            }
+
+            function ensureButton() {
+                let button = doc.getElementById(ID);
+                if (!button) {
+                    button = doc.createElement("button");
+                    button.id = ID;
+                    button.type = "button";
+                    button.textContent = "☰";
+                    button.addEventListener("click", (event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        const toggle = nativeToggle();
+                        if (toggle) {
+                            toggle.click();
+                            win.setTimeout(() => refresh(button), 120);
+                        }
+                    });
+                    doc.body.appendChild(button);
+                }
+                refresh(button);
+                return button;
+            }
+
+            if (!win.__dashboardPersistentMobileMenuInstalled) {
+                win.__dashboardPersistentMobileMenuInstalled = true;
+                const observer = new MutationObserver(() => ensureButton());
+                observer.observe(doc.body, {
+                    childList: true,
+                    subtree: true,
+                    attributes: true,
+                    attributeFilter: ["style", "class", "aria-expanded"]
+                });
+                win.addEventListener("resize", () => refresh(ensureButton()));
+                win.__dashboardMobileMenuObserver = observer;
+            }
+
+            ensureButton();
+            win.setTimeout(ensureButton, 150);
+            win.setTimeout(ensureButton, 600);
+        })();
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
 
 
 def install_live_native_search(debounce_ms: int = 350) -> None:
@@ -1120,7 +1233,7 @@ def dataframe_to_pdf(df: pd.DataFrame, title: str) -> bytes:
 def pdf_download_button(df: pd.DataFrame, title: str, file_name: str, key: str) -> None:
     """Exibe o botão para baixar exatamente a lista filtrada da tela."""
     st.download_button(
-        label="📄 Baixar lista em PDF",
+        label="📄 Baixar PDF",
         data=dataframe_to_pdf(df, title),
         file_name=file_name,
         mime="application/pdf",
@@ -1313,6 +1426,9 @@ with st.sidebar:
         st.cache_data.clear()
         st.rerun()
     st.markdown('<div class="sidebar-footer">Dados sincronizados com o Google Planilhas</div>', unsafe_allow_html=True)
+
+# Mantém o botão hambúrguer sempre disponível no celular.
+install_persistent_mobile_menu()
 
 # Mantém o campo nativo do Streamlit e atualiza a pesquisa após breve pausa.
 install_live_native_search(debounce_ms=350)
@@ -1675,10 +1791,20 @@ elif page == "Processos concluídos":
     view = concluidos.loc[mask].copy()
     responsavel = find_col(view, ["RESPONSÁVEL", "RESPONSAVEL"])
     if responsavel in view.columns: view = view.drop(columns=[responsavel])
-    st.markdown(
-        f'<div class="results-inline"><span>Resultados encontrados:</span><strong>{len(view)}</strong></div>',
-        unsafe_allow_html=True,
-    )
+    counter_col, pdf_col = st.columns([1, 0.24], gap="small")
+    with counter_col:
+        st.markdown(
+            f'<div class="results-inline"><span>Resultados encontrados:</span>'
+            f'<strong>{len(view)}</strong></div>',
+            unsafe_allow_html=True,
+        )
+    with pdf_col:
+        pdf_download_button(
+            view,
+            "Processos concluídos",
+            "processos_concluidos.pdf",
+            "pdf_processos_concluidos",
+        )
     concluded_widths: dict[str, str | int] = {
         column: 105 for column in view.columns
     }
@@ -1755,11 +1881,6 @@ elif page == "Em andamento":
             kind="stable",
         ).drop(columns=["_ORDEM_STATUS"])
 
-    st.markdown(
-        f'<div class="results-inline"><span>Processos ativos:</span>'
-        f'<strong>{len(view)}</strong></div>',
-        unsafe_allow_html=True,
-    )
     preferred = [
         a_resp,
         find_col(view, ["MOD", "MODALIDADE"], 2),
@@ -1793,12 +1914,20 @@ elif page == "Em andamento":
     if dias_col and dias_col in table_view.columns:
         andamento_widths[dias_col] = 75
 
-    pdf_download_button(
-        table_view,
-        "Processos em andamento",
-        "processos_em_andamento.pdf",
-        "pdf_processos_em_andamento",
-    )
+    counter_col, pdf_col = st.columns([1, 0.24], gap="small")
+    with counter_col:
+        st.markdown(
+            f'<div class="results-inline"><span>Processos ativos:</span>'
+            f'<strong>{len(view)}</strong></div>',
+            unsafe_allow_html=True,
+        )
+    with pdf_col:
+        pdf_download_button(
+            table_view,
+            "Processos em andamento",
+            "processos_em_andamento.pdf",
+            "pdf_processos_em_andamento",
+        )
 
     # Aproximadamente cinco linhas a menos para não gerar rolagem externa vertical.
     display_table(

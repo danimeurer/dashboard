@@ -1,12 +1,7 @@
-# Dashboard de Contratações - Menu móvel e exportação PDF
+# Dashboard de Contratações — Menu móvel fixo e PDF compacto
 
-Alterações desta versão:
-- botão do menu lateral restaurado no celular;
-- layout do cabeçalho adaptado para telas pequenas;
-- exportação em PDF nas listas de Processos em andamento;
-- exportação em PDF em todas as abas de Contratos;
-- exportação em PDF em Processos concluídos;
-- os PDFs respeitam os filtros e pesquisas aplicados;
-- planilha privada e pesquisa dinâmica preservadas.
-
-Substitua todos os arquivos no GitHub, inclusive `requirements.txt`.
+- botão hambúrguer permanente no celular;
+- o botão abre e fecha o menu lateral;
+- PDF ao lado do contador em Em andamento;
+- PDF ao lado do contador em Processos concluídos;
+- filtros, planilha privada e demais funções preservados.
