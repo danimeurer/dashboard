@@ -530,72 +530,85 @@ st.markdown(
         color: white !important;
     }
 
+    /*
+    Contador e PDF na mesma linha, ambos compactos.
+    O contador preserva exatamente o tamanho natural anterior.
+    */
     .st-key-counter_pdf_andamento [data-testid="stHorizontalBlock"],
     .st-key-counter_pdf_concluidos [data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
+        justify-content: flex-start !important;
         align-items: center !important;
         gap: .45rem !important;
     }
 
     .st-key-counter_pdf_andamento [data-testid="column"]:first-child,
     .st-key-counter_pdf_concluidos [data-testid="column"]:first-child {
-        flex: 1 1 auto !important;
+        flex: 0 0 auto !important;
+        width: auto !important;
         min-width: 0 !important;
     }
 
     .st-key-counter_pdf_andamento [data-testid="column"]:last-child,
     .st-key-counter_pdf_concluidos [data-testid="column"]:last-child {
-        flex: 0 0 132px !important;
-        width: 132px !important;
-        min-width: 132px !important;
+        flex: 0 0 124px !important;
+        width: 124px !important;
+        min-width: 124px !important;
     }
 
     .st-key-counter_pdf_andamento .results-inline,
     .st-key-counter_pdf_concluidos .results-inline {
-        width: 100% !important;
-        min-height: 36px !important;
-        margin: 0 !important;
+        width: auto !important;
+        min-height: unset !important;
+        margin: -3px 0 5px !important;
         box-sizing: border-box !important;
+        white-space: nowrap !important;
     }
 
     .st-key-counter_pdf_andamento div[data-testid="stDownloadButton"],
     .st-key-counter_pdf_concluidos div[data-testid="stDownloadButton"] {
-        margin: 0 !important;
+        margin: -3px 0 5px !important;
+    }
+
+    .st-key-counter_pdf_andamento div[data-testid="stDownloadButton"] > button,
+    .st-key-counter_pdf_concluidos div[data-testid="stDownloadButton"] > button {
+        height: 34px !important;
+        min-height: 34px !important;
+        padding: 4px 9px !important;
+        font-size: .73rem !important;
     }
 
     @media(max-width: 700px) {
         .st-key-counter_pdf_andamento [data-testid="stHorizontalBlock"],
         .st-key-counter_pdf_concluidos [data-testid="stHorizontalBlock"] {
-            gap: .3rem !important;
+            gap: .28rem !important;
         }
 
         .st-key-counter_pdf_andamento [data-testid="column"]:last-child,
         .st-key-counter_pdf_concluidos [data-testid="column"]:last-child {
-            flex: 0 0 108px !important;
-            width: 108px !important;
-            min-width: 108px !important;
+            flex: 0 0 102px !important;
+            width: 102px !important;
+            min-width: 102px !important;
         }
 
         .st-key-counter_pdf_andamento div[data-testid="stDownloadButton"] > button,
         .st-key-counter_pdf_concluidos div[data-testid="stDownloadButton"] > button {
-            height: 34px !important;
-            min-height: 34px !important;
-            padding: 4px 6px !important;
-            font-size: .68rem !important;
+            padding: 4px 5px !important;
+            font-size: .66rem !important;
         }
 
         .st-key-counter_pdf_andamento .results-inline,
         .st-key-counter_pdf_concluidos .results-inline {
-            padding: 5px 7px !important;
-            font-size: .70rem !important;
-            gap: 4px !important;
+            padding: 5px 8px !important;
+            font-size: .72rem !important;
+            gap: 5px !important;
         }
 
         .st-key-counter_pdf_andamento .results-inline strong,
         .st-key-counter_pdf_concluidos .results-inline strong {
-            font-size: .92rem !important;
+            font-size: .96rem !important;
         }
     }
 
@@ -1924,7 +1937,7 @@ elif page == "Processos concluídos":
     if responsavel in view.columns: view = view.drop(columns=[responsavel])
     with st.container(key="counter_pdf_concluidos"):
         counter_col, pdf_col = st.columns(
-            [1, 0.22],
+            [0.34, 0.16],
             gap="small",
             vertical_alignment="center",
         )
@@ -2046,7 +2059,7 @@ elif page == "Em andamento":
 
     with st.container(key="counter_pdf_andamento"):
         counter_col, pdf_col = st.columns(
-            [1, 0.22],
+            [0.34, 0.16],
             gap="small",
             vertical_alignment="center",
         )
