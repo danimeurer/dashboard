@@ -1,8 +1,9 @@
-# Dashboard de Contratações — PDF exatamente ao lado
+# Dashboard de Contratações — filtros mobile 2x2
 
-Correção aplicada conforme marcação nas imagens:
-- contador permanece no tamanho compacto original;
-- botão PDF fica imediatamente depois do contador;
-- não há espaço vazio entre os dois componentes;
-- posição corrigida no computador e no celular;
-- menu móvel e demais funções preservados.
+Alterações:
+- Em andamento: dois filtros por linha somente no celular;
+- Processos concluídos: dois filtros por linha somente no celular;
+- desktop preservado com quatro filtros na mesma linha;
+- contador e botão PDF com exatamente a mesma altura;
+- botão PDF permanece imediatamente ao lado do contador;
+- menu móvel e acesso à planilha privada preservados.

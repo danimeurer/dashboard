@@ -616,6 +616,96 @@ st.markdown(
         }
     }
 
+
+    /* Contador e botão PDF com exatamente a mesma altura. */
+    .st-key-counter_pdf_andamento .results-inline,
+    .st-key-counter_pdf_concluidos .results-inline {
+        height: 34px !important;
+        min-height: 34px !important;
+        max-height: 34px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+        margin-top: -3px !important;
+        margin-bottom: 5px !important;
+        line-height: 1 !important;
+    }
+
+    .st-key-counter_pdf_andamento div[data-testid="stDownloadButton"],
+    .st-key-counter_pdf_concluidos div[data-testid="stDownloadButton"] {
+        height: 34px !important;
+        min-height: 34px !important;
+        max-height: 34px !important;
+        margin-top: -3px !important;
+        margin-bottom: 5px !important;
+    }
+
+    .st-key-counter_pdf_andamento div[data-testid="stDownloadButton"] > button,
+    .st-key-counter_pdf_concluidos div[data-testid="stDownloadButton"] > button {
+        height: 34px !important;
+        min-height: 34px !important;
+        max-height: 34px !important;
+        margin: 0 !important;
+        line-height: 1 !important;
+    }
+
+    @media(max-width: 700px) {
+        /*
+        Em telas pequenas, os quatro filtros formam uma grade 2x2.
+        No desktop, o layout original de quatro filtros na mesma linha permanece.
+        */
+        .st-key-filtros_concluidos_mobile [data-testid="stHorizontalBlock"],
+        .st-key-filtros_andamento_mobile [data-testid="stHorizontalBlock"] {
+            display: grid !important;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+            gap: .45rem .55rem !important;
+            width: 100% !important;
+            align-items: start !important;
+        }
+
+        .st-key-filtros_concluidos_mobile [data-testid="stColumn"],
+        .st-key-filtros_andamento_mobile [data-testid="stColumn"] {
+            width: 100% !important;
+            min-width: 0 !important;
+            max-width: none !important;
+            flex: none !important;
+        }
+
+        .st-key-filtros_concluidos_mobile [data-testid="stSelectbox"],
+        .st-key-filtros_concluidos_mobile [data-testid="stTextInput"],
+        .st-key-filtros_andamento_mobile [data-testid="stSelectbox"],
+        .st-key-filtros_andamento_mobile [data-testid="stTextInput"] {
+            width: 100% !important;
+            min-width: 0 !important;
+        }
+
+        .st-key-filtros_concluidos_mobile [data-testid="stWidgetLabel"],
+        .st-key-filtros_andamento_mobile [data-testid="stWidgetLabel"] {
+            font-size: .84rem !important;
+        }
+
+        /* Mantém contador e PDF lado a lado e perfeitamente alinhados. */
+        .st-key-counter_pdf_andamento [data-testid="stHorizontalBlock"],
+        .st-key-counter_pdf_concluidos [data-testid="stHorizontalBlock"] {
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            align-items: center !important;
+        }
+
+        .st-key-counter_pdf_andamento .results-inline,
+        .st-key-counter_pdf_concluidos .results-inline,
+        .st-key-counter_pdf_andamento div[data-testid="stDownloadButton"],
+        .st-key-counter_pdf_concluidos div[data-testid="stDownloadButton"],
+        .st-key-counter_pdf_andamento div[data-testid="stDownloadButton"] > button,
+        .st-key-counter_pdf_concluidos div[data-testid="stDownloadButton"] > button {
+            height: 34px !important;
+            min-height: 34px !important;
+            max-height: 34px !important;
+        }
+    }
+
     </style>
     """,
     unsafe_allow_html=True,
@@ -1922,15 +2012,28 @@ elif page == "Processos concluídos":
     p_objeto = find_col(concluidos, ["OBJETO"], 6)
     p_solic = find_col(concluidos, ["SOLICITANTE"], 7)
     p_dias = find_col(concluidos, ["DIAS"], 8)
-    f1, f2, f3, f4 = st.columns([0.8, 1.15, 1.2, 1.7], gap="small")
-    with f1:
-        ano = st.selectbox("Ano", ["Todos"] + safe_values(concluidos, p_ano))
-    with f2:
-        tipo = st.selectbox("Tipo", ["Todos"] + safe_values(concluidos, p_tipo))
-    with f3:
-        solicitante = st.selectbox("Solicitante", ["Todos"] + safe_values(concluidos, p_solic))
-    with f4:
-        objeto = st.text_input("Pesquisar no objeto")
+    with st.container(key="filtros_concluidos_mobile"):
+        f1, f2, f3, f4 = st.columns(
+            [0.8, 1.15, 1.2, 1.7],
+            gap="small",
+        )
+        with f1:
+            ano = st.selectbox(
+                "Ano",
+                ["Todos"] + safe_values(concluidos, p_ano),
+            )
+        with f2:
+            tipo = st.selectbox(
+                "Tipo",
+                ["Todos"] + safe_values(concluidos, p_tipo),
+            )
+        with f3:
+            solicitante = st.selectbox(
+                "Solicitante",
+                ["Todos"] + safe_values(concluidos, p_solic),
+            )
+        with f4:
+            objeto = st.text_input("Pesquisar no objeto")
     mask = pd.Series(True, index=concluidos.index)
     if ano != "Todos" and p_ano: mask &= concluidos[p_ano].astype(str) == ano
     if tipo != "Todos" and p_tipo: mask &= concluidos[p_tipo].astype(str) == tipo
@@ -1991,15 +2094,28 @@ elif page == "Em andamento":
 
     # Os quatro filtros ocupam uma linha. O contador fica abaixo deles,
     # usando o mesmo padrão compacto de Processos concluídos.
-    f1, f2, f3, f4 = st.columns([1.15, 1.0, 1.15, 1.55], gap="small")
-    with f1:
-        resp = st.selectbox("Responsável", ["Todos"] + safe_values(andamento, a_resp))
-    with f2:
-        status = st.selectbox("Onde está?", ["Todos"] + safe_values(andamento, "STATUS"))
-    with f3:
-        sol = st.selectbox("Solicitante", ["Todos"] + safe_values(andamento, a_sol))
-    with f4:
-        obj = st.text_input("Pesquisar no objeto")
+    with st.container(key="filtros_andamento_mobile"):
+        f1, f2, f3, f4 = st.columns(
+            [1.15, 1.0, 1.15, 1.55],
+            gap="small",
+        )
+        with f1:
+            resp = st.selectbox(
+                "Responsável",
+                ["Todos"] + safe_values(andamento, a_resp),
+            )
+        with f2:
+            status = st.selectbox(
+                "Onde está?",
+                ["Todos"] + safe_values(andamento, "STATUS"),
+            )
+        with f3:
+            sol = st.selectbox(
+                "Solicitante",
+                ["Todos"] + safe_values(andamento, a_sol),
+            )
+        with f4:
+            obj = st.text_input("Pesquisar no objeto")
 
     mask = pd.Series(True, index=andamento.index)
     if resp != "Todos" and a_resp:
