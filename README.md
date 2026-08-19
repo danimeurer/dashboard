@@ -26,3 +26,9 @@ Atualização:
 - filtro Contratação/Renovação alimentado pelos valores reais da aba PCA;
 - todos os PDFs recebem logo e cabeçalho institucional do CRF/SC;
 - cabeçalho institucional repetido em todas as páginas do relatório.
+
+
+Correções adicionais:
+- filtro PCA usa exclusivamente a coluna CONTRATAÇÃO/RENOVAÇÃO;
+- não utiliza mais fallback por posição que poderia selecionar VALORES;
+- paginação adicionada ao rodapé direito de todos os PDFs.

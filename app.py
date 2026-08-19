@@ -1596,6 +1596,16 @@ def dataframe_to_pdf(df: pd.DataFrame, title: str) -> bytes:
             line_y,
         )
 
+        # Paginação no rodapé, alinhada à direita.
+        page_number = canvas.getPageNumber()
+        canvas.setFillColor(colors.HexColor("#526679"))
+        canvas.setFont("Helvetica", 7.5)
+        canvas.drawRightString(
+            page_width - left_right_margin,
+            6.5 * mm,
+            f"Página {page_number}",
+        )
+
         canvas.restoreState()
 
     clean = df.copy().reset_index(drop=True).fillna("")
@@ -2235,17 +2245,20 @@ elif page == "Plano contratação anual":
     page_header("Plano contratação anual", "")
 
     pca_objeto = find_col(pca, ["OBJETO"], 1)
-    pca_tipo = find_col(
-        pca,
-        [
-            "CONTRATAÇÃO/RENOVAÇÃO",
-            "CONTRATACAO/RENOVACAO",
-            "TIPO DE CONTRATAÇÃO",
-            "TIPO DE CONTRATACAO",
-            "TIPO",
-        ],
-        3,
-    )
+    # Localiza especificamente a coluna CONTRATAÇÃO/RENOVAÇÃO.
+    # Não usa fallback por posição, porque a estrutura do PCA pode mudar.
+    # Também exclui explicitamente colunas de DATA e VALOR.
+    pca_tipo = None
+    for column in pca.columns:
+        normalized = norm(column)
+        if (
+            "CONTRAT" in normalized
+            and "RENOV" in normalized
+            and "DATA" not in normalized
+            and "VALOR" not in normalized
+        ):
+            pca_tipo = column
+            break
     pca_unidade = find_col(
         pca,
         ["UNIDADE DEMANDANTE", "UNIDADE REQUISITANTE", "UNIDADE"],
@@ -2274,7 +2287,7 @@ elif page == "Plano contratação anual":
             # evitando manter uma lista fixa no código.
             opcoes_tipo_pca = ["Todos"] + safe_values(pca, pca_tipo)
             tipo_pca = st.selectbox(
-                "Contratação ou Renovação",
+                "CONTRATAÇÃO/RENOVAÇÃO",
                 opcoes_tipo_pca,
                 key="pca_tipo",
             )
