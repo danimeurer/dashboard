@@ -20,3 +20,9 @@ Atualização PCA:
 - ignora as colunas A e F da aba PCA;
 - botão Baixar PDF adicionado ao lado do contador;
 - PDF respeita pesquisa e filtros aplicados.
+
+
+Atualização:
+- filtro Contratação/Renovação alimentado pelos valores reais da aba PCA;
+- todos os PDFs recebem logo e cabeçalho institucional do CRF/SC;
+- cabeçalho institucional repetido em todas as páginas do relatório.

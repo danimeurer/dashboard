@@ -19,7 +19,7 @@ from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 SPREADSHEET_ID = "1pqmFc5FQE6rbCeR321-FHFuTdghpkPGr2XF0irQfjGc"
 SHEETS = {
@@ -1469,17 +1469,22 @@ def _pdf_text(value: object) -> str:
 
 
 def dataframe_to_pdf(df: pd.DataFrame, title: str) -> bytes:
-    """Gera um PDF paisagem, paginado e com cabeçalho repetido."""
+    """Gera PDF paisagem com cabeçalho institucional do CRF/SC em todas as páginas."""
     buffer = BytesIO()
     page_width, page_height = landscape(A4)
-    margin = 11 * mm
+
+    left_right_margin = 11 * mm
+    # Reserva espaço para logo + cabeçalho institucional.
+    top_margin = 37 * mm
+    bottom_margin = 11 * mm
+
     doc = SimpleDocTemplate(
         buffer,
         pagesize=(page_width, page_height),
-        rightMargin=margin,
-        leftMargin=margin,
-        topMargin=11 * mm,
-        bottomMargin=11 * mm,
+        rightMargin=left_right_margin,
+        leftMargin=left_right_margin,
+        topMargin=top_margin,
+        bottomMargin=bottom_margin,
         title=title,
         author="CRF/SC - Comissão de Compras e Contratações",
     )
@@ -1493,7 +1498,7 @@ def dataframe_to_pdf(df: pd.DataFrame, title: str) -> bytes:
         leading=18,
         textColor=colors.HexColor("#123653"),
         alignment=TA_CENTER,
-        spaceAfter=4 * mm,
+        spaceAfter=3 * mm,
     )
     info_style = ParagraphStyle(
         "PdfInfo",
@@ -1524,6 +1529,75 @@ def dataframe_to_pdf(df: pd.DataFrame, title: str) -> bytes:
         textColor=colors.HexColor("#26394d"),
     )
 
+    def draw_institutional_header(canvas, _doc):
+        """Desenha logo e identificação institucional no topo de cada página."""
+        canvas.saveState()
+
+        center_x = page_width / 2
+        top_y = page_height - 7 * mm
+
+        # Logo centralizado, preservando proporção.
+        if LOGO_PATH.exists():
+            try:
+                logo = Image(str(LOGO_PATH))
+                max_logo_width = 42 * mm
+                max_logo_height = 11 * mm
+                ratio = min(
+                    max_logo_width / float(logo.imageWidth),
+                    max_logo_height / float(logo.imageHeight),
+                )
+                logo_width = float(logo.imageWidth) * ratio
+                logo_height = float(logo.imageHeight) * ratio
+                canvas.drawImage(
+                    str(LOGO_PATH),
+                    center_x - logo_width / 2,
+                    top_y - logo_height,
+                    width=logo_width,
+                    height=logo_height,
+                    preserveAspectRatio=True,
+                    mask="auto",
+                )
+                text_y = top_y - logo_height - 2.2 * mm
+            except Exception:
+                text_y = top_y
+        else:
+            text_y = top_y
+
+        canvas.setFillColor(colors.HexColor("#123653"))
+        canvas.setFont("Helvetica-Bold", 8.4)
+        canvas.drawCentredString(
+            center_x,
+            text_y,
+            "SERVIÇO PÚBLICO FEDERAL",
+        )
+
+        canvas.setFont("Helvetica-Bold", 8.0)
+        canvas.drawCentredString(
+            center_x,
+            text_y - 4.0 * mm,
+            "CONSELHO REGIONAL DE FARMÁCIA DO ESTADO DE SANTA CATARINA - CRF/SC - www.crfsc.gov.br",
+        )
+
+        canvas.setFont("Helvetica", 7.6)
+        canvas.drawCentredString(
+            center_x,
+            text_y - 8.0 * mm,
+            "Rua Crispim Mira, 421 - Centro - CEP 88.020-540  Fone (48) 3298-5900 - Florianópolis/SC",
+        )
+
+        # Linha discreta separando o cabeçalho do conteúdo.
+        line_y = text_y - 11.2 * mm
+        canvas.setStrokeColor(colors.HexColor("#b9cad8"))
+        canvas.setLineWidth(0.45)
+        canvas.line(
+            left_right_margin,
+            line_y,
+            page_width - left_right_margin,
+            line_y,
+        )
+
+        canvas.restoreState()
+
     clean = df.copy().reset_index(drop=True).fillna("")
     story = [
         Paragraph(title, title_style),
@@ -1536,23 +1610,45 @@ def dataframe_to_pdf(df: pd.DataFrame, title: str) -> bytes:
 
     if clean.empty:
         story.append(Paragraph("Nenhum registro encontrado.", cell_style))
-        doc.build(story)
+        doc.build(
+            story,
+            onFirstPage=draw_institutional_header,
+            onLaterPages=draw_institutional_header,
+        )
         return buffer.getvalue()
 
-    headers = [Paragraph(_pdf_text(column), header_style) for column in clean.columns]
+    headers = [
+        Paragraph(_pdf_text(column), header_style)
+        for column in clean.columns
+    ]
     rows = [headers]
-    for _, row in clean.iterrows():
-        rows.append([Paragraph(_pdf_text(value), cell_style) for value in row.tolist()])
 
-    usable_width = page_width - (2 * margin)
+    for _, row in clean.iterrows():
+        rows.append(
+            [
+                Paragraph(_pdf_text(value), cell_style)
+                for value in row.tolist()
+            ]
+        )
+
+    usable_width = page_width - (2 * left_right_margin)
     text_lengths = []
+
     for column in clean.columns:
         sample = clean[column].astype(str).head(40).tolist()
-        longest = max([len(str(column))] + [min(len(value), 70) for value in sample])
+        longest = max(
+            [len(str(column))]
+            + [min(len(value), 70) for value in sample]
+        )
         text_lengths.append(max(6, longest))
+
     total_weight = sum(text_lengths) or 1
     min_width = 18 * mm
-    raw_widths = [max(min_width, usable_width * weight / total_weight) for weight in text_lengths]
+
+    raw_widths = [
+        max(min_width, usable_width * weight / total_weight)
+        for weight in text_lengths
+    ]
     scale = usable_width / sum(raw_widths)
     col_widths = [width * scale for width in raw_widths]
 
@@ -1563,6 +1659,7 @@ def dataframe_to_pdf(df: pd.DataFrame, title: str) -> bytes:
         hAlign="CENTER",
         splitByRow=1,
     )
+
     table_style = [
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#dcebf7")),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#123653")),
@@ -1572,14 +1669,26 @@ def dataframe_to_pdf(df: pd.DataFrame, title: str) -> bytes:
         ("TOPPADDING", (0, 0), (-1, -1), 3),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
     ]
+
     for row_number in range(1, len(rows)):
         background = "#ffffff" if row_number % 2 else "#f3f7fa"
         table_style.append(
-            ("BACKGROUND", (0, row_number), (-1, row_number), colors.HexColor(background))
+            (
+                "BACKGROUND",
+                (0, row_number),
+                (-1, row_number),
+                colors.HexColor(background),
+            )
         )
+
     table.setStyle(TableStyle(table_style))
     story.extend([table, Spacer(1, 2 * mm)])
-    doc.build(story)
+
+    doc.build(
+        story,
+        onFirstPage=draw_institutional_header,
+        onLaterPages=draw_institutional_header,
+    )
     return buffer.getvalue()
 
 
@@ -2161,9 +2270,12 @@ elif page == "Plano contratação anual":
                 key="pca_busca_objeto",
             )
         with f2:
+            # As opções vêm diretamente dos valores existentes na coluna,
+            # evitando manter uma lista fixa no código.
+            opcoes_tipo_pca = ["Todos"] + safe_values(pca, pca_tipo)
             tipo_pca = st.selectbox(
                 "Contratação ou Renovação",
-                ["Todos", "Contratação", "Renovação"],
+                opcoes_tipo_pca,
                 key="pca_tipo",
             )
         with f3:
@@ -2178,7 +2290,13 @@ elif page == "Plano contratação anual":
 
     if tipo_pca != "Todos" and pca_tipo:
         wanted_tipo = norm(tipo_pca)
-        pca_mask &= pca[pca_tipo].fillna("").astype(str).map(norm) == wanted_tipo
+        pca_mask &= (
+            pca[pca_tipo]
+            .fillna("")
+            .astype(str)
+            .map(norm)
+            == wanted_tipo
+        )
 
     if unidade_pca != "Todas" and pca_unidade:
         pca_mask &= pca[pca_unidade].fillna("").astype(str).str.strip() == unidade_pca
