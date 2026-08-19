@@ -26,6 +26,7 @@ SHEETS = {
     "contratos": "CONTRATOS VIGENTES",
     "concluidos": "PROCESSOS CONCLUÍDOS",
     "andamento": "CONTRATAÇÕES EM ANDAMENTO",
+    "pca": "PCA",
 }
 
 
@@ -686,7 +687,8 @@ st.markdown(
         No desktop, o layout original de quatro filtros na mesma linha permanece.
         */
         .st-key-filtros_concluidos_mobile [data-testid="stHorizontalBlock"],
-        .st-key-filtros_andamento_mobile [data-testid="stHorizontalBlock"] {
+        .st-key-filtros_andamento_mobile [data-testid="stHorizontalBlock"],
+        .st-key-filtros_pca_mobile [data-testid="stHorizontalBlock"] {
             display: grid !important;
             grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
             gap: .45rem .55rem !important;
@@ -695,7 +697,8 @@ st.markdown(
         }
 
         .st-key-filtros_concluidos_mobile [data-testid="stColumn"],
-        .st-key-filtros_andamento_mobile [data-testid="stColumn"] {
+        .st-key-filtros_andamento_mobile [data-testid="stColumn"],
+        .st-key-filtros_pca_mobile [data-testid="stColumn"] {
             width: 100% !important;
             min-width: 0 !important;
             max-width: none !important;
@@ -705,7 +708,9 @@ st.markdown(
         .st-key-filtros_concluidos_mobile [data-testid="stSelectbox"],
         .st-key-filtros_concluidos_mobile [data-testid="stTextInput"],
         .st-key-filtros_andamento_mobile [data-testid="stSelectbox"],
-        .st-key-filtros_andamento_mobile [data-testid="stTextInput"] {
+        .st-key-filtros_andamento_mobile [data-testid="stTextInput"],
+        .st-key-filtros_pca_mobile [data-testid="stSelectbox"],
+        .st-key-filtros_pca_mobile [data-testid="stTextInput"] {
             width: 100% !important;
             min-width: 0 !important;
         }
@@ -784,8 +789,71 @@ def make_unique(columns: list[object]) -> list[str]:
     return result
 
 
+def prepare_pca_sheet(raw: pd.DataFrame) -> pd.DataFrame:
+    """Prepara a aba PCA, ignorando integralmente a coluna F da planilha."""
+    if raw.empty:
+        return pd.DataFrame()
+
+    work = raw.copy()
+
+    # A coluna F corresponde ao índice 5 no retorno bruto do Google Sheets.
+    if work.shape[1] > 5:
+        work = work.drop(columns=[work.columns[5]])
+
+    # Localiza o cabeçalho de forma tolerante, pois podem existir linhas de título
+    # antes da tabela. Procuramos pelos campos principais do PCA.
+    header_row = 0
+    expected = {
+        "OBJETO",
+        "UNIDADE DEMANDANTE",
+        "DATA RENOVACAO/CONTRATACAO",
+        "DATA CONTRATACAO/RENOVACAO",
+        "CONTRATACAO/RENOVACAO",
+        "TIPO",
+    }
+
+    best_score = -1
+    for idx in range(min(12, len(work))):
+        values = {norm(value) for value in work.iloc[idx].tolist() if str(value).strip()}
+        score = 0
+        for value in values:
+            if value == "OBJETO":
+                score += 3
+            if "UNIDADE" in value and "DEMANDANTE" in value:
+                score += 3
+            if "DATA" in value and ("RENOV" in value or "CONTRAT" in value):
+                score += 3
+            if "CONTRAT" in value and "RENOV" in value:
+                score += 2
+            if value in expected:
+                score += 1
+        if score > best_score:
+            best_score = score
+            header_row = idx
+
+    if header_row >= len(work):
+        return pd.DataFrame()
+
+    df = work.iloc[header_row + 1:].copy()
+    df.columns = make_unique(work.iloc[header_row].tolist())
+    df = df.dropna(how="all").reset_index(drop=True)
+
+    # Remove linhas totalmente vazias mesmo quando o Google devolve strings vazias.
+    if not df.empty:
+        nonempty = df.fillna("").astype(str).apply(
+            lambda row: any(value.strip() for value in row),
+            axis=1,
+        )
+        df = df.loc[nonempty].reset_index(drop=True)
+
+    return df
+
+
 def prepare_sheet(raw: pd.DataFrame, sheet_key: str) -> pd.DataFrame:
     """Promove a linha correta para cabeçalho sem perder colunas úteis."""
+    if sheet_key == "pca":
+        return prepare_pca_sheet(raw)
+
     header_row = 1 if sheet_key == "contratos" else 0
     if raw.empty or header_row >= len(raw):
         return pd.DataFrame()
@@ -1687,7 +1755,7 @@ with st.sidebar:
     )
     page = st.radio(
         "Navegação",
-        ["Visão geral", "Em andamento", "Contratos", "Processos concluídos"],
+        ["Visão geral", "Em andamento", "Contratos", "Plano contratação anual", "Processos concluídos"],
         label_visibility="collapsed",
     )
     st.divider()
@@ -1714,6 +1782,7 @@ except Exception as exc:
 contratos = data["contratos"]
 concluidos = data["concluidos"]
 andamento = status_data(data["andamento"])
+pca = data["pca"]
 
 # Campos identificados de forma tolerante a pequenas alterações nos cabeçalhos.
 c_empresa = find_col(contratos, ["EMPRESA"], 6)
@@ -2036,6 +2105,116 @@ elif page == "Contratos":
             font_size=10,
             responsive_max_height=720,
         )
+
+elif page == "Plano contratação anual":
+    page_header("Plano contratação anual", "")
+
+    pca_objeto = find_col(pca, ["OBJETO"], 1)
+    pca_tipo = find_col(
+        pca,
+        [
+            "CONTRATAÇÃO/RENOVAÇÃO",
+            "CONTRATACAO/RENOVACAO",
+            "TIPO DE CONTRATAÇÃO",
+            "TIPO DE CONTRATACAO",
+            "TIPO",
+        ],
+        3,
+    )
+    pca_unidade = find_col(
+        pca,
+        ["UNIDADE DEMANDANTE", "UNIDADE REQUISITANTE", "UNIDADE"],
+    )
+    pca_data = find_col(
+        pca,
+        [
+            "DATA RENOVAÇÃO/CONTRATAÇÃO",
+            "DATA RENOVACAO/CONTRATACAO",
+            "DATA CONTRATAÇÃO/RENOVAÇÃO",
+            "DATA CONTRATACAO/RENOVACAO",
+            "DATA DA RENOVAÇÃO/CONTRATAÇÃO",
+            "DATA DA RENOVACAO/CONTRATACAO",
+        ],
+    )
+
+    with st.container(key="filtros_pca_mobile"):
+        f1, f2, f3 = st.columns([1.65, 1.0, 1.35], gap="small")
+        with f1:
+            busca_objeto = st.text_input(
+                "Pesquisar no objeto",
+                key="pca_busca_objeto",
+            )
+        with f2:
+            tipo_pca = st.selectbox(
+                "Contratação ou Renovação",
+                ["Todos", "Contratação", "Renovação"],
+                key="pca_tipo",
+            )
+        with f3:
+            unidade_pca = st.selectbox(
+                "Unidade Demandante",
+                ["Todas"] + safe_values(pca, pca_unidade),
+                key="pca_unidade",
+            )
+
+    pca_mask = pd.Series(True, index=pca.index)
+    pca_mask &= contains_filter(pca, pca_objeto, busca_objeto)
+
+    if tipo_pca != "Todos" and pca_tipo:
+        wanted_tipo = norm(tipo_pca)
+        pca_mask &= pca[pca_tipo].fillna("").astype(str).map(norm) == wanted_tipo
+
+    if unidade_pca != "Todas" and pca_unidade:
+        pca_mask &= pca[pca_unidade].fillna("").astype(str).str.strip() == unidade_pca
+
+    pca_view = pca.loc[pca_mask].copy()
+
+    # Ordena cronologicamente pela data de renovação/contratação.
+    if pca_data and pca_data in pca_view.columns:
+        pca_view["_DATA_ORDENACAO"] = pd.to_datetime(
+            pca_view[pca_data],
+            errors="coerce",
+            dayfirst=True,
+        )
+        pca_view = pca_view.sort_values(
+            "_DATA_ORDENACAO",
+            ascending=True,
+            na_position="last",
+            kind="stable",
+        ).drop(columns=["_DATA_ORDENACAO"])
+        pca_view[pca_data] = format_date_br(pca_view[pca_data])
+
+    # Formata eventuais colunas monetárias sem alterar a fonte dos dados.
+    for column in pca_view.columns:
+        if any(term in norm(column) for term in ["VALOR", "PRECO", "PREÇO", "CUSTO"]):
+            pca_view[column] = format_currency_br(pca_view[column])
+
+    st.markdown(
+        f'<div class="results-inline"><span>Registros encontrados:</span>'
+        f'<strong>{len(pca_view)}</strong></div>',
+        unsafe_allow_html=True,
+    )
+
+    pca_widths: dict[str, str | int] = {column: 115 for column in pca_view.columns}
+    if pca_objeto and pca_objeto in pca_view.columns:
+        pca_widths[pca_objeto] = 320
+    if pca_unidade and pca_unidade in pca_view.columns:
+        pca_widths[pca_unidade] = 160
+    if pca_tipo and pca_tipo in pca_view.columns:
+        pca_widths[pca_tipo] = 135
+    if pca_data and pca_data in pca_view.columns:
+        pca_widths[pca_data] = 130
+
+    display_table(
+        pca_view,
+        650,
+        dynamic_height=False,
+        column_widths=pca_widths,
+        font_size=10,
+        responsive_bottom_margin=14,
+        responsive_min_height=230,
+        responsive_max_height=760,
+    )
 
 elif page == "Processos concluídos":
     page_header("Processos concluídos", "")
