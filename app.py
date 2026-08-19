@@ -566,7 +566,8 @@ st.markdown(
     O contador preserva exatamente o tamanho natural anterior.
     */
     .st-key-counter_pdf_andamento [data-testid="stHorizontalBlock"],
-    .st-key-counter_pdf_concluidos [data-testid="stHorizontalBlock"] {
+    .st-key-counter_pdf_concluidos [data-testid="stHorizontalBlock"],
+    .st-key-counter_pdf_pca [data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
@@ -577,7 +578,8 @@ st.markdown(
     }
 
     .st-key-counter_pdf_andamento [data-testid="stColumn"]:first-child,
-    .st-key-counter_pdf_concluidos [data-testid="stColumn"]:first-child {
+    .st-key-counter_pdf_concluidos [data-testid="stColumn"]:first-child,
+    .st-key-counter_pdf_pca [data-testid="stColumn"]:first-child {
         flex: 0 0 auto !important;
         width: fit-content !important;
         max-width: fit-content !important;
@@ -585,7 +587,8 @@ st.markdown(
     }
 
     .st-key-counter_pdf_andamento [data-testid="stColumn"]:last-child,
-    .st-key-counter_pdf_concluidos [data-testid="stColumn"]:last-child {
+    .st-key-counter_pdf_concluidos [data-testid="stColumn"]:last-child,
+    .st-key-counter_pdf_pca [data-testid="stColumn"]:last-child {
         flex: 0 0 124px !important;
         width: 124px !important;
         max-width: 124px !important;
@@ -593,7 +596,8 @@ st.markdown(
     }
 
     .st-key-counter_pdf_andamento .results-inline,
-    .st-key-counter_pdf_concluidos .results-inline {
+    .st-key-counter_pdf_concluidos .results-inline,
+    .st-key-counter_pdf_pca .results-inline {
         width: auto !important;
         min-height: unset !important;
         margin: -3px 0 5px !important;
@@ -602,12 +606,14 @@ st.markdown(
     }
 
     .st-key-counter_pdf_andamento div[data-testid="stDownloadButton"],
-    .st-key-counter_pdf_concluidos div[data-testid="stDownloadButton"] {
+    .st-key-counter_pdf_concluidos div[data-testid="stDownloadButton"],
+    .st-key-counter_pdf_pca div[data-testid="stDownloadButton"] {
         margin: -3px 0 5px !important;
     }
 
     .st-key-counter_pdf_andamento div[data-testid="stDownloadButton"] > button,
-    .st-key-counter_pdf_concluidos div[data-testid="stDownloadButton"] > button {
+    .st-key-counter_pdf_concluidos div[data-testid="stDownloadButton"] > button,
+    .st-key-counter_pdf_pca div[data-testid="stDownloadButton"] > button {
         height: 34px !important;
         min-height: 34px !important;
         padding: 4px 9px !important;
@@ -642,7 +648,8 @@ st.markdown(
         }
 
         .st-key-counter_pdf_andamento .results-inline strong,
-        .st-key-counter_pdf_concluidos .results-inline strong {
+        .st-key-counter_pdf_concluidos .results-inline strong,
+        .st-key-counter_pdf_pca .results-inline strong {
             font-size: .96rem !important;
         }
     }
@@ -650,7 +657,8 @@ st.markdown(
 
     /* Contador e botão PDF com exatamente a mesma altura. */
     .st-key-counter_pdf_andamento .results-inline,
-    .st-key-counter_pdf_concluidos .results-inline {
+    .st-key-counter_pdf_concluidos .results-inline,
+    .st-key-counter_pdf_pca .results-inline {
         height: 34px !important;
         min-height: 34px !important;
         max-height: 34px !important;
@@ -664,7 +672,8 @@ st.markdown(
     }
 
     .st-key-counter_pdf_andamento div[data-testid="stDownloadButton"],
-    .st-key-counter_pdf_concluidos div[data-testid="stDownloadButton"] {
+    .st-key-counter_pdf_concluidos div[data-testid="stDownloadButton"],
+    .st-key-counter_pdf_pca div[data-testid="stDownloadButton"] {
         height: 34px !important;
         min-height: 34px !important;
         max-height: 34px !important;
@@ -673,7 +682,8 @@ st.markdown(
     }
 
     .st-key-counter_pdf_andamento div[data-testid="stDownloadButton"] > button,
-    .st-key-counter_pdf_concluidos div[data-testid="stDownloadButton"] > button {
+    .st-key-counter_pdf_concluidos div[data-testid="stDownloadButton"] > button,
+    .st-key-counter_pdf_pca div[data-testid="stDownloadButton"] > button {
         height: 34px !important;
         min-height: 34px !important;
         max-height: 34px !important;
@@ -790,15 +800,21 @@ def make_unique(columns: list[object]) -> list[str]:
 
 
 def prepare_pca_sheet(raw: pd.DataFrame) -> pd.DataFrame:
-    """Prepara a aba PCA, ignorando integralmente a coluna F da planilha."""
+    """Prepara a aba PCA, ignorando integralmente as colunas A e F da planilha."""
     if raw.empty:
         return pd.DataFrame()
 
     work = raw.copy()
 
-    # A coluna F corresponde ao índice 5 no retorno bruto do Google Sheets.
+    # As colunas A e F correspondem aos índices 0 e 5 no retorno bruto
+    # do Google Sheets. A remoção é feita antes de promover o cabeçalho.
+    drop_cols = []
+    if work.shape[1] > 0:
+        drop_cols.append(work.columns[0])
     if work.shape[1] > 5:
-        work = work.drop(columns=[work.columns[5]])
+        drop_cols.append(work.columns[5])
+    if drop_cols:
+        work = work.drop(columns=drop_cols)
 
     # Localiza o cabeçalho de forma tolerante, pois podem existir linhas de título
     # antes da tabela. Procuramos pelos campos principais do PCA.
@@ -2189,11 +2205,25 @@ elif page == "Plano contratação anual":
         if any(term in norm(column) for term in ["VALOR", "PRECO", "PREÇO", "CUSTO"]):
             pca_view[column] = format_currency_br(pca_view[column])
 
-    st.markdown(
-        f'<div class="results-inline"><span>Registros encontrados:</span>'
-        f'<strong>{len(pca_view)}</strong></div>',
-        unsafe_allow_html=True,
-    )
+    with st.container(key="counter_pdf_pca"):
+        counter_col, pdf_col = st.columns(
+            [0.34, 0.16],
+            gap="small",
+            vertical_alignment="center",
+        )
+        with counter_col:
+            st.markdown(
+                f'<div class="results-inline"><span>Registros encontrados:</span>'
+                f'<strong>{len(pca_view)}</strong></div>',
+                unsafe_allow_html=True,
+            )
+        with pdf_col:
+            pdf_download_button(
+                pca_view,
+                "Plano contratação anual",
+                "plano_contratacao_anual.pdf",
+                "pdf_plano_contratacao_anual",
+            )
 
     pca_widths: dict[str, str | int] = {column: 115 for column in pca_view.columns}
     if pca_objeto and pca_objeto in pca_view.columns:

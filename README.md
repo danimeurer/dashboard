@@ -14,3 +14,9 @@ Correção aplicada em Contratos > Apostilamentos:
 - filtro Contratação/Renovação;
 - filtro Unidade Demandante;
 - ordenação por Data renovação/Contratação.
+
+
+Atualização PCA:
+- ignora as colunas A e F da aba PCA;
+- botão Baixar PDF adicionado ao lado do contador;
+- PDF respeita pesquisa e filtros aplicados.
